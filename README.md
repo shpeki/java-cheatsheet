@@ -12,36 +12,6 @@ The Single Responsibility Principle states that a class should have only one rea
 - Facilitates testing and debugging
 - Increases code reusability
 
-### Bad Example
-```java
-public class UserManager {
-    private Database db;
-    
-    public UserManager() {
-        db = new Database();
-    }
-    
-    public void saveUser(User user) {
-        db.saveData(user);
-    }
-    
-    public User getUser(String userId) {
-        return (User) db.getData(userId);
-    }
-    
-    public void sendEmail(User user, String message) {
-        // Email sending logic
-        EmailService emailService = new EmailService();
-        emailService.sendEmail(user.getEmail(), message);
-    }
-    
-    public String generateUserReport(User user) {
-        // Report generation logic
-        return "User Report for: " + user.getName();
-    }
-}
-```
-
 ### Good Example
 ```java
 // User repository - responsible for data access
