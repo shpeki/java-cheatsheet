@@ -3124,3 +3124,215 @@ Both `volatile` and `AtomicInteger` are valuable tools for concurrent programmin
 - **AtomicInteger** provides both visibility and atomicity guarantees and is ideal for counters and values that need atomic compound operations.
 
 Understanding the differences between these two mechanisms is essential for writing correct and efficient concurrent code in Java. Choose the right tool based on your specific requirements for visibility, atomicity, and performance.
+
+# equals() and hashCode() Contract in Java
+
+The contract between `equals()` and `hashCode()` is a fundamental concept in Java that ensures consistent behavior when objects are compared or used in hash-based collections. Understanding this contract is essential for correctly implementing these methods in your classes.
+
+## The Contract
+
+The Java API documentation defines the following contract between the `equals()` and `hashCode()` methods:
+
+1. If two objects are equal according to the `equals()` method, then calling `hashCode()` on each of them must produce the same integer result.
+2. If two objects are unequal according to the `equals()` method, it is not required that calling `hashCode()` on each produces distinct results. However, producing distinct results for unequal objects may improve the performance of hash-based collections.
+3. The `hashCode()` method must consistently return the same integer for the same object during a single execution of an application (unless information used in `equals()` or `hashCode()` is modified).
+
+In simpler terms:
+- Equal objects must have equal hash codes
+- Unequal objects should ideally (but not necessarily) have different hash codes
+- Hash codes should be consistent for the same object
+
+## Why the Contract Matters
+
+The contract is crucial for the correct functioning of hash-based collections such as `HashMap`, `HashSet`, and `Hashtable`:
+
+1. These collections use an object's hash code to determine its storage bucket.
+2. When searching for an object, they first find the appropriate bucket using the hash code, then use `equals()` to find the exact match within that bucket.
+3. If equal objects had different hash codes, a hash-based collection would store them in different buckets, making it impossible to find the object again.
+
+## Default Implementation
+
+The default implementations of `equals()` and `hashCode()` in the `Object` class are:
+
+- `equals()`: Returns true if and only if both references point to the same object (reference equality)
+- `hashCode()`: Returns an integer derived from the memory address of the object
+
+For many classes, these default implementations are not sufficient, and you need to override them.
+
+## Implementing equals() and hashCode()
+
+### equals() Method
+
+A proper `equals()` implementation should be:
+
+1. **Reflexive**: For any non-null reference value `x`, `x.equals(x)` should return `true`.
+2. **Symmetric**: For any non-null reference values `x` and `y`, `x.equals(y)` should return `true` if and only if `y.equals(x)` returns `true`.
+3. **Transitive**: For any non-null reference values `x`, `y`, and `z`, if `x.equals(y)` returns `true` and `y.equals(z)` returns `true`, then `x.equals(z)` should return `true`.
+4. **Consistent**: For any non-null reference values `x` and `y`, multiple invocations of `x.equals(y)` should consistently return `true` or consistently return `false`, provided no information used in `equals()` comparisons on the objects is modified.
+5. **Non-nullity**: For any non-null reference value `x`, `x.equals(null)` should return `false`.
+
+### hashCode() Method
+
+A good `hashCode()` implementation should:
+
+1. Be consistent with the `equals()` method
+2. Have a good distribution of hash codes to minimize collisions
+3. Be efficient to compute
+
+## Example Implementation
+
+Here's an example of correctly implementing both methods for a simple `Person` class:
+
+```java
+public class Person {
+    private final String firstName;
+    private final String lastName;
+    private final int age;
+    
+    public Person(String firstName, String lastName, int age) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.age = age;
+    }
+    
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        
+        Person other = (Person) obj;
+        
+        return age == other.age &&
+               Objects.equals(firstName, other.firstName) &&
+               Objects.equals(lastName, other.lastName);
+    }
+    
+    @Override
+    public int hashCode() {
+        return Objects.hash(firstName, lastName, age);
+    }
+}
+```
+
+## Common Pitfalls
+
+### 1. Overriding equals() Without hashCode()
+
+```java
+public class Person {
+    private String name;
+    private int age;
+    
+    // Only overriding equals() - WRONG!
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Person other = (Person) obj;
+        return age == other.age && Objects.equals(name, other.name);
+    }
+    
+    // hashCode() not overridden - will use Object's implementation
+    // This will break the contract!
+}
+```
+
+**Problem**: Two equal `Person` objects might have different hash codes, causing issues with hash-based collections.
+
+### 2. Inconsistent equals() and hashCode()
+
+```java
+public class Person {
+    private String name;
+    private int age;
+    
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Person other = (Person) obj;
+        return age == other.age && Objects.equals(name, other.name);
+    }
+    
+    @Override
+    public int hashCode() {
+        // Only using name, but equals() uses name AND age - WRONG!
+        return name.hashCode();
+    }
+}
+```
+
+**Problem**: Two objects with the same name but different ages will have the same hash code but will not be equal, which is acceptable. However, if you use different fields in `equals()` and `hashCode()`, you risk having equal objects with different hash codes, which breaks the contract.
+
+### 3. Mutable Fields in hashCode()
+
+```java
+public class Person {
+    private String name;
+    private int age;
+    
+    public void setAge(int age) {
+        this.age = age;
+    }
+    
+    @Override
+    public boolean equals(Object obj) {
+        // Implementation using name and age
+    }
+    
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, age);
+    }
+}
+```
+
+**Problem**: If an object is stored in a hash-based collection and then a field used in `hashCode()` is modified, the object's hash code will change. This may make the object unfindable in the collection.
+
+## Best Practices
+
+1. **Always override both methods**: If you override `equals()`, always override `hashCode()` as well.
+
+2. **Use the same fields**: Use exactly the same fields in both methods.
+
+3. **Consider immutability**: For objects stored in hash-based collections, make fields used in `hashCode()` immutable or don't modify them after insertion.
+
+4. **Use Java utilities**: Use `Objects.equals()` and `Objects.hash()` for cleaner implementations.
+
+5. **Consider using IDE or Lombok**: Modern IDEs can generate these methods for you. Libraries like Lombok can also automatically implement them with annotations.
+
+6. **Test the contract**: Write unit tests to verify that your implementation satisfies the contract.
+
+## Using Java 7+ Utilities
+
+Java 7 introduced utilities in the `Objects` class to help with implementing `equals()` and `hashCode()`:
+
+```java
+@Override
+public boolean equals(Object obj) {
+    if (this == obj) return true;
+    if (obj == null || getClass() != obj.getClass()) return false;
+    Person other = (Person) obj;
+    return age == other.age &&
+           Objects.equals(firstName, other.firstName) &&
+           Objects.equals(lastName, other.lastName);
+}
+
+@Override
+public int hashCode() {
+    return Objects.hash(firstName, lastName, age);
+}
+```
+
+## Using IDE Generation
+
+Most modern IDEs can generate these methods for you. For example, in IntelliJ IDEA:
+
+1. Right-click inside the class
+2. Select "Generate" (or press Alt+Insert)
+3. Choose "equals() and hashCode()"
+4. Select the fields to include
+
+## Conclusion
+
+The contract between `equals()` and `hashCode()` is a fundamental concept in Java. Adhering to this contract ensures that your objects will behave correctly in collections and other contexts that rely on object equality. Always remember to override both methods consistently and test your implementation thoroughly.
