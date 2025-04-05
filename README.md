@@ -3567,3 +3567,293 @@ Understanding the distinction between intermediate and terminal operations is cr
 - **Terminal operations** are eager, produce a result or side effect, and consume the stream.
 
 This design allows for flexible and efficient data processing, particularly for large data sets or when only a subset of elements needs to be processed.
+
+# Parallel Streams in Java
+
+Java 8 introduced the Stream API to process collections in a functional style. Parallel streams are a powerful feature that allow for concurrent processing of stream elements, potentially improving performance for large data sets.
+
+## Introduction to Parallel Streams
+
+Parallel streams leverage multi-core processors by dividing the stream into multiple sub-streams that can be processed concurrently on separate threads. 
+
+There are two primary ways to create a parallel stream:
+
+```java
+// Method 1: From a collection
+List<Integer> numbers = Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+Stream<Integer> parallelStream = numbers.parallelStream();
+
+// Method 2: From an existing sequential stream
+Stream<Integer> sequentialStream = numbers.stream();
+Stream<Integer> parallelStream2 = sequentialStream.parallel();
+```
+
+## How Parallel Streams Work
+
+Parallel streams work through a divide-and-conquer approach:
+
+1. **Split**: The data source is split into multiple parts
+2. **Apply**: The operations are applied to each part in parallel
+3. **Combine**: The results are combined back together
+
+Under the hood, parallel streams use the Fork/Join framework introduced in Java 7. This framework manages a thread pool (the common ForkJoinPool) that by default has as many threads as your system has processors.
+
+```java
+// Checking available processors
+int processors = Runtime.getRuntime().availableProcessors();
+System.out.println("Available processors: " + processors);
+```
+
+## Benefits of Parallel Streams
+
+1. **Improved Performance**: For large data sets and operations that are CPU-intensive
+2. **Efficient Resource Utilization**: Better utilization of multi-core processors
+3. **Simple Implementation**: Minimal changes needed to convert sequential streams to parallel
+4. **Automatic Thread Management**: No need to manually create and manage threads
+
+## When to Use Parallel Streams
+
+Parallel streams are particularly effective when:
+
+1. **Large Data Sets**: The collection has a large number of elements
+2. **Independent Operations**: The operations on each element are independent
+3. **Computationally Intensive**: The operations are CPU-bound rather than I/O-bound
+4. **Stateless Operations**: The operations don't depend on order or state
+5. **Expensive Merge Cost**: The cost of merging results is low compared to processing them
+
+## Example: Sequential vs Parallel Performance
+
+```java
+import java.util.stream.IntStream;
+import java.time.LocalTime;
+import java.time.Duration;
+
+public class StreamPerformanceComparison {
+    public static void main(String[] args) {
+        // Create a large array of numbers
+        int[] numbers = IntStream.rangeClosed(1, 100_000_000).toArray();
+        
+        // Sequential stream
+        LocalTime start = LocalTime.now();
+        long count = IntStream.of(numbers)
+                              .filter(n -> n % 2 == 0)
+                              .count();
+        LocalTime end = LocalTime.now();
+        System.out.println("Sequential stream time: " + 
+                           Duration.between(start, end).toMillis() + "ms");
+        
+        // Parallel stream
+        start = LocalTime.now();
+        count = IntStream.of(numbers)
+                        .parallel()
+                        .filter(n -> n % 2 == 0)
+                        .count();
+        end = LocalTime.now();
+        System.out.println("Parallel stream time: " + 
+                           Duration.between(start, end).toMillis() + "ms");
+    }
+}
+```
+
+## Common Parallel Stream Operations
+
+Most Stream operations can be performed in parallel:
+
+```java
+// Filtering
+List<Person> adults = people.parallelStream()
+                           .filter(person -> person.getAge() >= 18)
+                           .collect(Collectors.toList());
+
+// Mapping
+List<String> upperNames = names.parallelStream()
+                              .map(String::toUpperCase)
+                              .collect(Collectors.toList());
+
+// Reduction
+int sum = numbers.parallelStream()
+                .reduce(0, Integer::sum);
+
+// Complex processing
+double average = employees.parallelStream()
+                         .filter(e -> e.getDepartment().equals("Engineering"))
+                         .mapToDouble(Employee::getSalary)
+                         .average()
+                         .orElse(0.0);
+```
+
+## Important Considerations and Potential Pitfalls
+
+### 1. Order of Execution
+
+Parallel streams don't guarantee the processing order of elements. If order matters, use ordered operations explicitly.
+
+```java
+// May print elements in any order
+numbers.parallelStream().forEach(System.out::println);
+
+// Will maintain encounter order
+numbers.parallelStream().forEachOrdered(System.out::println);
+```
+
+### 2. Thread Safety
+
+Operations in a parallel stream must be thread-safe. Be cautious when modifying shared state.
+
+```java
+// BAD: Not thread-safe
+List<String> results = new ArrayList<>();
+names.parallelStream().map(String::toUpperCase).forEach(results::add);
+
+// GOOD: Thread-safe collection operation
+List<String> results = names.parallelStream()
+                           .map(String::toUpperCase)
+                           .collect(Collectors.toList());
+```
+
+### 3. Non-Associative Operations
+
+Some operations require associativity to work correctly in parallel.
+
+```java
+// Subtraction is not associative: (1-2)-3 ≠ 1-(2-3)
+// Results may vary between sequential and parallel execution
+int result = numbers.parallelStream()
+                   .reduce(0, (a, b) -> a - b); // Unreliable in parallel
+
+// Addition is associative: (1+2)+3 = 1+(2+3)
+int sum = numbers.parallelStream()
+                .reduce(0, Integer::sum); // Reliable in parallel
+```
+
+### 4. Performance Overhead
+
+Parallel streams have overhead for splitting, thread coordination, and merging results. For small data sets, this overhead can outweigh the benefits.
+
+```java
+// Sequential may be faster for small lists
+List<Integer> smallList = Arrays.asList(1, 2, 3, 4, 5);
+int sum = smallList.stream().mapToInt(i -> i).sum(); // Likely faster than parallel
+```
+
+### 5. Stateful Lambda Expressions
+
+Avoid stateful lambda expressions in parallel streams.
+
+```java
+// BAD: Stateful lambda (depends on external 'counter')
+AtomicInteger counter = new AtomicInteger();
+numbers.parallelStream()
+      .map(x -> x + counter.getAndIncrement()) // Unpredictable results
+      .forEach(System.out::println);
+
+// GOOD: Stateless lambda
+numbers.parallelStream()
+      .map(x -> x * 2) // No external state
+      .forEach(System.out::println);
+```
+
+## Controlling the Thread Pool
+
+By default, parallel streams use the common ForkJoinPool. You can control its size using a system property:
+
+```java
+// Set before application starts
+System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", "4");
+```
+
+However, this affects all parallel streams in the application. For finer control, consider using custom thread pools with the `CompletableFuture` API instead.
+
+## When NOT to Use Parallel Streams
+
+Avoid parallel streams when:
+
+1. **Small Data Sets**: The overhead outweighs the benefits
+2. **I/O-Bound Operations**: Operations wait for I/O (disk, network)
+3. **Order-Dependent Operations**: Results depend on the processing order
+4. **Limited Parallelism**: The operations don't benefit from parallelism
+5. **Shared Mutable State**: Operations modify shared variables
+
+## Checking if a Stream is Parallel
+
+You can check if a stream is parallel using the `isParallel()` method:
+
+```java
+Stream<Integer> stream = numbers.stream().parallel();
+boolean isParallel = stream.isParallel(); // true
+```
+
+## Converting Between Sequential and Parallel
+
+You can switch between sequential and parallel processing:
+
+```java
+// To parallel
+Stream<Integer> parallelStream = numbers.stream().parallel();
+
+// Back to sequential
+Stream<Integer> sequentialStream = parallelStream.sequential();
+```
+
+## Practical Example: Finding Prime Numbers
+
+This example shows how parallel streams can accelerate CPU-intensive operations:
+
+```java
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.time.LocalTime;
+import java.time.Duration;
+
+public class PrimeNumberFinder {
+    public static void main(String[] args) {
+        int max = 1_000_000;
+
+        // Sequential
+        LocalTime start = LocalTime.now();
+        List<Integer> primes = findPrimes(max, false);
+        LocalTime end = LocalTime.now();
+        System.out.println("Sequential time: " + 
+                          Duration.between(start, end).toMillis() + "ms");
+        System.out.println("Found " + primes.size() + " primes");
+
+        // Parallel
+        start = LocalTime.now();
+        primes = findPrimes(max, true);
+        end = LocalTime.now();
+        System.out.println("Parallel time: " + 
+                          Duration.between(start, end).toMillis() + "ms");
+        System.out.println("Found " + primes.size() + " primes");
+    }
+
+    public static List<Integer> findPrimes(int max, boolean parallel) {
+        IntStream stream = IntStream.rangeClosed(2, max);
+        if (parallel) {
+            stream = stream.parallel();
+        }
+        return stream.filter(PrimeNumberFinder::isPrime)
+                    .boxed()
+                    .collect(Collectors.toList());
+    }
+
+    public static boolean isPrime(int number) {
+        if (number <= 1) return false;
+        if (number <= 3) return true;
+        if (number % 2 == 0 || number % 3 == 0) return false;
+        
+        for (int i = 5; i * i <= number; i += 6) {
+            if (number % i == 0 || number % (i + 2) == 0) return false;
+        }
+        return true;
+    }
+}
+```
+
+## Conclusion
+
+Parallel streams in Java provide an elegant way to leverage multi-core processors for improved performance. They are particularly effective for CPU-intensive operations on large data sets with independent elements.
+
+However, they're not a silver bullet for all performance problems. Careful consideration of the workload characteristics, potential thread safety issues, and the overhead of parallelization is necessary to determine if parallel streams are appropriate for your specific use case.
+
+When used correctly, parallel streams can significantly improve application performance while maintaining readable, maintainable code.
