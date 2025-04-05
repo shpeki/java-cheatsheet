@@ -3336,3 +3336,234 @@ Most modern IDEs can generate these methods for you. For example, in IntelliJ ID
 ## Conclusion
 
 The contract between `equals()` and `hashCode()` is a fundamental concept in Java. Adhering to this contract ensures that your objects will behave correctly in collections and other contexts that rely on object equality. Always remember to override both methods consistently and test your implementation thoroughly.
+
+# Streams: Intermediate vs Terminal Operations in Java
+
+Java 8 introduced the Stream API, which provides a functional approach to processing collections of objects. Streams support two types of operations: intermediate and terminal operations. Understanding the differences between these operation types is essential for effective stream processing.
+
+## Stream Basics
+
+A stream represents a sequence of elements and offers various methods to perform operations on these elements. Unlike collections, streams:
+
+- Do not store elements
+- Are not data structures
+- Process elements on demand
+- Can be traversed only once
+- Are designed for pipelining operations
+
+```java
+// Creating a stream from a collection
+List<String> names = Arrays.asList("John", "Alice", "Bob", "Carol");
+Stream<String> nameStream = names.stream();
+```
+
+## Intermediate Operations
+
+Intermediate operations transform a stream into another stream. These operations:
+
+- Are lazy (not executed until a terminal operation is invoked)
+- Return a new stream
+- Allow for method chaining
+- Do not produce a result on their own
+
+### Key Characteristics of Intermediate Operations
+
+1. **Laziness**: They don't process elements until a terminal operation is called
+2. **Pipelining**: Multiple intermediate operations can be chained together
+3. **Transformation**: They transform the stream into another stream
+4. **Non-consumption**: They don't consume the stream
+
+### Common Intermediate Operations
+
+| Operation | Description | Example |
+|-----------|-------------|---------|
+| `filter()` | Selects elements based on a predicate | `stream.filter(n -> n > 10)` |
+| `map()` | Transforms each element using a function | `stream.map(String::toUpperCase)` |
+| `flatMap()` | Transforms and flattens nested streams | `stream.flatMap(List::stream)` |
+| `distinct()` | Removes duplicate elements | `stream.distinct()` |
+| `sorted()` | Sorts elements in natural order or by a comparator | `stream.sorted()` or `stream.sorted(Comparator.reverseOrder())` |
+| `peek()` | Performs an action on each element without modifying the stream | `stream.peek(System.out::println)` |
+| `limit()` | Truncates the stream to a specified size | `stream.limit(5)` |
+| `skip()` | Discards the first n elements | `stream.skip(3)` |
+| `takeWhile()` (Java 9+) | Takes elements while a predicate is true | `stream.takeWhile(n -> n < 10)` |
+| `dropWhile()` (Java 9+) | Drops elements while a predicate is true | `stream.dropWhile(n -> n < 10)` |
+
+### Example of Intermediate Operations
+
+```java
+List<String> names = Arrays.asList("John", "Alice", "Bob", "Carol", "Alice");
+
+Stream<String> processedStream = names.stream()
+    .filter(name -> name.length() > 3)     // Intermediate: filters names longer than 3 chars
+    .map(String::toUpperCase)              // Intermediate: converts to uppercase
+    .distinct();                           // Intermediate: removes duplicates
+
+// No processing has occurred yet - stream operations are lazy
+```
+
+## Terminal Operations
+
+Terminal operations produce a result or a side effect. These operations:
+
+- Trigger the processing of the stream pipeline
+- Consume the stream (the stream cannot be used afterward)
+- Return a non-stream result (or void)
+- Are eager (executed immediately)
+
+### Key Characteristics of Terminal Operations
+
+1. **Eagerness**: They process the stream immediately
+2. **Result Production**: They produce a result or side effect
+3. **Stream Consumption**: They consume the stream, making it unusable after the operation
+4. **Pipeline Execution**: They trigger the execution of all intermediate operations in the pipeline
+
+### Common Terminal Operations
+
+| Operation | Description | Return Type | Example |
+|-----------|-------------|-------------|---------|
+| `forEach()` | Performs an action for each element | `void` | `stream.forEach(System.out::println)` |
+| `toArray()` | Collects elements into an array | `Object[]` or `T[]` | `stream.toArray()` or `stream.toArray(String[]::new)` |
+| `reduce()` | Reduces elements to a single value | `Optional<T>` or `T` | `stream.reduce(0, Integer::sum)` |
+| `collect()` | Collects elements into a container | Varies (List, Set, Map, etc.) | `stream.collect(Collectors.toList())` |
+| `min()`/`max()` | Finds the minimum/maximum element | `Optional<T>` | `stream.min(Comparator.naturalOrder())` |
+| `count()` | Counts elements in the stream | `long` | `stream.count()` |
+| `anyMatch()` | Checks if any element matches a predicate | `boolean` | `stream.anyMatch(n -> n > 10)` |
+| `allMatch()` | Checks if all elements match a predicate | `boolean` | `stream.allMatch(n -> n > 0)` |
+| `noneMatch()` | Checks if no elements match a predicate | `boolean` | `stream.noneMatch(n -> n < 0)` |
+| `findFirst()` | Finds the first element | `Optional<T>` | `stream.findFirst()` |
+| `findAny()` | Finds any element (useful in parallel streams) | `Optional<T>` | `stream.findAny()` |
+
+### Example of Terminal Operations
+
+```java
+List<String> names = Arrays.asList("John", "Alice", "Bob", "Carol");
+
+// Terminal operation: collect to a list
+List<String> filteredList = names.stream()
+    .filter(name -> name.length() > 3)
+    .collect(Collectors.toList());
+
+// Terminal operation: count
+long count = names.stream()
+    .filter(name -> name.startsWith("A"))
+    .count();
+
+// Terminal operation: reduce
+Optional<String> longest = names.stream()
+    .reduce((n1, n2) -> n1.length() > n2.length() ? n1 : n2);
+```
+
+## Combining Intermediate and Terminal Operations
+
+A typical stream pipeline consists of:
+1. A source (collection, array, generator function)
+2. Zero or more intermediate operations
+3. One terminal operation
+
+```java
+// Complete example combining intermediate and terminal operations
+List<Employee> employees = getEmployeeList();
+
+double averageSalary = employees.stream()      // Source
+    .filter(e -> e.getDepartment().equals("IT"))  // Intermediate
+    .filter(e -> e.getYearsOfService() > 5)       // Intermediate
+    .map(Employee::getSalary)                     // Intermediate
+    .mapToDouble(Double::doubleValue)             // Intermediate
+    .average()                                    // Terminal
+    .orElse(0.0);                                // Handle empty result
+```
+
+## Execution Behavior: Key Differences
+
+### Intermediate Operations
+
+- **Lazily Evaluated**: Not executed until a terminal operation is called
+- **Pipelined**: Multiple operations are combined into a single pass over the data
+- **Short-Circuiting Possible**: Some operations (like `limit()`) can stop processing early
+
+### Terminal Operations
+
+- **Eagerly Evaluated**: Execute immediately when called
+- **Trigger Processing**: Cause the entire stream pipeline to execute
+- **Consume the Stream**: After a terminal operation, the stream is consumed and cannot be reused
+
+## Performance Considerations
+
+1. **Laziness Benefits**:
+   - Avoids unnecessary computation
+   - Can short-circuit when results are found early
+   - Allows for more efficient processing strategies
+
+```java
+// Efficient due to laziness and short-circuiting
+Optional<String> first = names.stream()
+    .filter(name -> {
+        System.out.println("Filtering: " + name); // Will only execute as needed
+        return name.length() > 10;
+    })
+    .findFirst(); // Short-circuits after finding first match
+```
+
+2. **Stream Reuse**:
+   - Streams cannot be reused after a terminal operation
+   - Will throw `IllegalStateException` if attempted
+
+```java
+Stream<String> stream = names.stream()
+    .filter(name -> name.length() > 3);
+
+// First use of terminal operation works fine
+long count = stream.count();
+
+// Second terminal operation throws IllegalStateException
+List<String> list = stream.collect(Collectors.toList()); // Error!
+```
+
+## Best Practices
+
+1. **Use intermediate operations for transformations and filtering**:
+   ```java
+   stream.filter(...).map(...).distinct()
+   ```
+
+2. **Use a single terminal operation to produce your final result**:
+   ```java
+   .collect(Collectors.toList())
+   ```
+
+3. **Prefer method references over lambda expressions when possible**:
+   ```java
+   .map(String::toUpperCase) // Instead of .map(s -> s.toUpperCase())
+   ```
+
+4. **Use specialized streams for primitives to avoid boxing/unboxing**:
+   ```java
+   IntStream.range(1, 100).sum() // Instead of boxing to Integer
+   ```
+
+5. **Consider using parallel streams for large data sets**:
+   ```java
+   collection.parallelStream()...
+   ```
+
+## Debugging Tip
+
+Since intermediate operations are lazy, debugging can be challenging. Use `peek()` to observe elements without affecting the stream:
+
+```java
+List<String> result = names.stream()
+    .filter(name -> name.length() > 3)
+    .peek(name -> System.out.println("After filter: " + name))
+    .map(String::toUpperCase)
+    .peek(name -> System.out.println("After map: " + name))
+    .collect(Collectors.toList());
+```
+
+## Conclusion
+
+Understanding the distinction between intermediate and terminal operations is crucial for effectively working with Java streams:
+
+- **Intermediate operations** are lazy, return a new stream, and can be chained.
+- **Terminal operations** are eager, produce a result or side effect, and consume the stream.
+
+This design allows for flexible and efficient data processing, particularly for large data sets or when only a subset of elements needs to be processed.
