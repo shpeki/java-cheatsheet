@@ -1056,3 +1056,268 @@ public class Service implements Loggable {
 ### Equivalent Annotation:
 ```java
 @Retention(Retention
+
+# Nested Classes in Java
+
+Nested classes are classes that are defined within other classes. Java supports four types of nested classes, each with different properties and use cases. Understanding when and how to use each type is important for clean, maintainable code design.
+
+## 1. Static Nested Classes
+
+A static nested class is a static member of its enclosing class.
+
+### Key Characteristics:
+- Declared with the `static` keyword
+- Can access only static members of the outer class
+- Can be instantiated without an instance of the outer class
+- Behaves similarly to a top-level class, but packaged within the outer class
+
+### Example:
+
+```java
+public class OuterClass {
+    private static int staticOuterField = 10;
+    private int instanceOuterField = 20;
+    
+    // Static nested class
+    public static class StaticNestedClass {
+        public void display() {
+            // Can access static members of outer class
+            System.out.println("Static outer field: " + staticOuterField);
+            
+            // Cannot access instance members
+            // System.out.println(instanceOuterField); // Compilation error
+        }
+    }
+    
+    public static void main(String[] args) {
+        // Creating a static nested class instance doesn't require
+        // an instance of the outer class
+        StaticNestedClass nestedObject = new StaticNestedClass();
+        nestedObject.display();
+    }
+}
+```
+
+### When to Use:
+- When the nested class doesn't need access to the outer class's instance members
+- To logically group classes that are used in only one place
+- To increase encapsulation
+- For helper classes that are associated with the outer class
+
+## 2. Inner Classes (Non-static Nested Classes)
+
+An inner class is a non-static nested class that has access to all members of its enclosing class.
+
+### Key Characteristics:
+- Does not have the `static` keyword
+- Has access to all members of the outer class (both static and instance)
+- Requires an instance of the outer class to exist
+- Each inner class instance is implicitly associated with an outer class instance
+
+### Example:
+
+```java
+public class OuterClass {
+    private static int staticOuterField = 10;
+    private int instanceOuterField = 20;
+    
+    // Inner class (non-static nested class)
+    public class InnerClass {
+        private int innerField = 30;
+        
+        public void display() {
+            // Can access all outer class members
+            System.out.println("Static outer field: " + staticOuterField);
+            System.out.println("Instance outer field: " + instanceOuterField);
+            System.out.println("Inner field: " + innerField);
+        }
+    }
+    
+    public void createInner() {
+        InnerClass inner = new InnerClass();
+        inner.display();
+    }
+    
+    public static void main(String[] args) {
+        // Must create outer class instance first
+        OuterClass outer = new OuterClass();
+        
+        // Then create inner class using outer instance
+        InnerClass inner = outer.new InnerClass();
+        inner.display();
+        
+        // Or use a method that creates it
+        outer.createInner();
+    }
+}
+```
+
+### When to Use:
+- When the nested class needs access to instance members of the outer class
+- When the nested class is logically bound to its outer class and unlikely to be used elsewhere
+- For classes that act as "helpers" to the outer class but need access to its internal state
+
+## 3. Local Classes
+
+A local class is a class defined within a method or block.
+
+### Key Characteristics:
+- Defined within a method, constructor, or block
+- Scope is limited to the enclosing block
+- Can access all members of the enclosing class
+- Can access local variables and parameters that are final or effectively final
+
+### Example:
+
+```java
+public class OuterClass {
+    private int outerField = 10;
+    
+    public void method(final int param) {
+        final int localVar = 20;
+        int effectivelyFinal = 30; // effectively final (not modified after initialization)
+        
+        // Local class
+        class LocalClass {
+            public void display() {
+                // Can access outer class members
+                System.out.println("Outer field: " + outerField);
+                
+                // Can access final or effectively final local variables
+                System.out.println("Method parameter: " + param);
+                System.out.println("Local variable: " + localVar);
+                System.out.println("Effectively final: " + effectivelyFinal);
+            }
+        }
+        
+        // Create and use the local class
+        LocalClass local = new LocalClass();
+        local.display();
+        
+        // Cannot use LocalClass outside this method
+    }
+    
+    public static void main(String[] args) {
+        OuterClass outer = new OuterClass();
+        outer.method(100);
+    }
+}
+```
+
+### When to Use:
+- When a class is only needed within a single method
+- When you need to create an instance that requires access to local variables
+- To limit the scope of a helper class
+
+## 4. Anonymous Classes
+
+An anonymous class is a local class without a name, declared and instantiated in a single expression.
+
+### Key Characteristics:
+- No name - defined and instantiated in a single statement
+- Can extend a class or implement an interface (but not both)
+- Cannot have constructors (since there's no class name)
+- Cannot have static members except constant variables
+- Can access final or effectively final local variables
+
+### Example:
+
+```java
+public class OuterClass {
+    // Interface for our anonymous class
+    interface Greeting {
+        void greet();
+    }
+    
+    public void createAnonymous() {
+        final String message = "Hello from anonymous class";
+        
+        // Anonymous class implementing the Greeting interface
+        Greeting greeting = new Greeting() {
+            @Override
+            public void greet() {
+                System.out.println(message);
+            }
+        };
+        
+        greeting.greet();
+        
+        // Anonymous class extending Thread
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                System.out.println("Thread running");
+            }
+        };
+        
+        thread.start();
+    }
+    
+    public static void main(String[] args) {
+        OuterClass outer = new OuterClass();
+        outer.createAnonymous();
+    }
+}
+```
+
+### When to Use:
+- For one-time use implementations of interfaces or abstract classes
+- When you need a simple, one-off implementation
+- For event listeners and handlers
+- Before Java 8, for simple interface implementations (now often replaced by lambda expressions)
+
+## Comparison of Nested Class Types
+
+| Feature | Static Nested | Inner Class | Local Class | Anonymous Class |
+|---------|---------------|------------|------------|-----------------|
+| Access to outer class | Static members only | All members | All members | All members |
+| Can be instantiated without outer class | Yes | No | N/A | N/A |
+| Where declared | Inside outer class | Inside outer class | Inside a method/block | Inside an expression |
+| Can have static members | Yes | No | No | No |
+| Can have constructors | Yes | Yes | Yes | No |
+| Can extend/implement | Yes | Yes | Yes | Yes (one only) |
+| Access to local variables | No | No | Yes (final/effectively final) | Yes (final/effectively final) |
+| Can be defined with modifiers | Yes | Yes | No | No |
+
+## Best Practices
+
+1. **Use the right type for the job:**
+   - Prefer static nested classes when no access to outer instance is needed
+   - Use inner classes when tight coupling with outer class is necessary
+   - Use local classes when the class is only relevant to a single method
+   - Use anonymous classes for simple, one-time implementations
+
+2. **Keep nested classes small and focused:**
+   - Don't overuse - extract to top-level classes when they grow in complexity
+   - Consider whether the nesting improves readability and maintainability
+
+3. **Be aware of memory considerations:**
+   - Inner classes hold a reference to their outer instance, preventing garbage collection
+   - Static nested classes don't have this issue
+
+4. **Consider alternatives:**
+   - For simple interface implementations, use lambda expressions (Java 8+)
+   - For complex nested types, consider if a top-level class would be clearer
+
+5. **Accessibility:**
+   - Use the most restrictive access level possible
+   - Make inner classes private unless they need to be accessed outside
+
+## In Java 8 and Beyond
+
+With the introduction of lambda expressions in Java 8, anonymous classes implementing functional interfaces are often replaced with more concise lambda expressions:
+
+```java
+// Before Java 8 (anonymous class)
+button.addActionListener(new ActionListener() {
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        System.out.println("Button clicked");
+    }
+});
+
+// Java 8+ (lambda expression)
+button.addActionListener(e -> System.out.println("Button clicked"));
+```
+
+Understanding when to use each type of nested class helps create more maintainable and readable code.
