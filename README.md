@@ -448,6 +448,881 @@ When all five SOLID principles are applied together, they lead to systems that a
 5. **Reusable** - components can be reused in different contexts
 
 
+# Object-Oriented Programming Principles in Java
+
+Java is a class-based, object-oriented programming language designed to be portable and platform-independent. Object-Oriented Programming (OOP) is a programming paradigm based on the concept of "objects," which can contain data (fields or attributes) and code (methods or procedures). Java fully embraces OOP principles, making it an excellent language for understanding these concepts.
+
+## Core OOP Principles
+
+### 1. Encapsulation
+
+Encapsulation is the bundling of data (attributes) and methods (functions) that operate on the data into a single unit (class) and restricting access to some of the object's components. It's essentially about information hiding.
+
+#### Key Aspects of Encapsulation in Java:
+
+1. **Access Modifiers**: Java provides access modifiers to control the visibility of classes, methods, and fields:
+   - `private`: Accessible only within the class
+   - `default` (no modifier): Accessible within the package
+   - `protected`: Accessible within the package and by subclasses
+   - `public`: Accessible from anywhere
+
+2. **Getters and Setters**: Methods that provide controlled access to private fields
+
+#### Example:
+
+```java
+public class BankAccount {
+    // Private fields - hidden from outside access
+    private double balance;
+    private String accountNumber;
+    
+    // Constructor
+    public BankAccount(String accountNumber, double initialBalance) {
+        this.accountNumber = accountNumber;
+        this.balance = initialBalance;
+    }
+    
+    // Getter methods
+    public double getBalance() {
+        return balance;
+    }
+    
+    public String getAccountNumber() {
+        // Maybe return only last 4 digits for security
+        return "xxxx-xxxx-xxxx-" + accountNumber.substring(accountNumber.length() - 4);
+    }
+    
+    // Methods to modify private fields with validation
+    public void deposit(double amount) {
+        if (amount > 0) {
+            balance += amount;
+        } else {
+            throw new IllegalArgumentException("Deposit amount must be positive");
+        }
+    }
+    
+    public void withdraw(double amount) {
+        if (amount > 0 && amount <= balance) {
+            balance -= amount;
+        } else {
+            throw new IllegalArgumentException("Invalid withdrawal amount");
+        }
+    }
+}
+```
+
+#### Benefits of Encapsulation:
+
+1. **Data Hiding**: Prevents direct access to the internal state of objects
+2. **Controlled Access**: Allows validating inputs before changing an object's state
+3. **Flexibility**: Implementation details can change without affecting client code
+4. **Maintainability**: Easier to maintain code since changes are isolated
+
+### 2. Inheritance
+
+Inheritance is a mechanism where a new class (subclass/derived class) is derived from an existing class (superclass/base class). The subclass inherits fields and methods from the superclass.
+
+#### Key Aspects of Inheritance in Java:
+
+1. **`extends` Keyword**: Used to create a subclass
+2. **`super` Keyword**: Used to call superclass methods or constructor
+3. **Method Overriding**: Subclass can provide a specific implementation of a method inherited from the superclass
+4. **Single Inheritance**: Java supports single inheritance for classes (a class can only extend one class)
+5. **Multiple Inheritance of Interfaces**: A class can implement multiple interfaces
+
+#### Example:
+
+```java
+// Superclass
+public class Vehicle {
+    protected String make;
+    protected String model;
+    protected int year;
+    
+    public Vehicle(String make, String model, int year) {
+        this.make = make;
+        this.model = model;
+        this.year = year;
+    }
+    
+    public void startEngine() {
+        System.out.println("Vehicle engine started");
+    }
+    
+    public void stopEngine() {
+        System.out.println("Vehicle engine stopped");
+    }
+    
+    public String getInfo() {
+        return year + " " + make + " " + model;
+    }
+}
+
+// Subclass
+public class Car extends Vehicle {
+    private int numDoors;
+    private boolean isConvertible;
+    
+    public Car(String make, String model, int year, int numDoors, boolean isConvertible) {
+        // Call superclass constructor
+        super(make, model, year);
+        this.numDoors = numDoors;
+        this.isConvertible = isConvertible;
+    }
+    
+    // Method overriding
+    @Override
+    public void startEngine() {
+        System.out.println("Car engine started with key");
+    }
+    
+    // New method specific to Car
+    public void honk() {
+        System.out.println("Beep Beep!");
+    }
+    
+    @Override
+    public String getInfo() {
+        return super.getInfo() + ", Doors: " + numDoors + 
+               (isConvertible ? " (Convertible)" : "");
+    }
+}
+```
+
+#### Benefits of Inheritance:
+
+1. **Code Reuse**: Subclasses inherit fields and methods from the superclass
+2. **Extensibility**: Allows extending functionality without modifying existing code
+3. **Hierarchical Classification**: Organizes classes into a hierarchical structure
+4. **Polymorphic Behavior**: Enables runtime polymorphism (discussed below)
+
+### 3. Polymorphism
+
+Polymorphism allows objects of different classes to be treated as objects of a common superclass. The most common use of polymorphism in OOP occurs when a parent class reference is used to refer to a child class object.
+
+#### Key Aspects of Polymorphism in Java:
+
+1. **Method Overriding**: Runtime polymorphism through method overriding
+2. **Method Overloading**: Compile-time polymorphism through method overloading
+3. **Interface Implementation**: A class can implement multiple interfaces
+4. **Dynamic Binding**: The method call is resolved at runtime
+
+#### Example:
+
+```java
+// Using the Vehicle and Car classes from the previous example
+
+public class ElectricCar extends Vehicle {
+    private int batteryCapacity;
+    
+    public ElectricCar(String make, String model, int year, int batteryCapacity) {
+        super(make, model, year);
+        this.batteryCapacity = batteryCapacity;
+    }
+    
+    @Override
+    public void startEngine() {
+        System.out.println("Electric car powered on silently");
+    }
+    
+    public void chargeBattery() {
+        System.out.println("Charging battery...");
+    }
+}
+
+public class VehicleDemo {
+    public static void main(String[] args) {
+        // Polymorphism in action - treating different subclasses as Vehicle type
+        Vehicle vehicle1 = new Car("Toyota", "Camry", 2020, 4, false);
+        Vehicle vehicle2 = new ElectricCar("Tesla", "Model 3", 2021, 75);
+        
+        // Method calls are resolved at runtime based on the actual object type
+        vehicle1.startEngine(); // Outputs: Car engine started with key
+        vehicle2.startEngine(); // Outputs: Electric car powered on silently
+        
+        // Using an array of vehicles demonstrates polymorphism
+        Vehicle[] vehicles = new Vehicle[3];
+        vehicles[0] = new Vehicle("Generic", "Vehicle", 2019);
+        vehicles[1] = new Car("Honda", "Civic", 2018, 4, false);
+        vehicles[2] = new ElectricCar("Nissan", "Leaf", 2020, 62);
+        
+        // Process all vehicles, regardless of their specific type
+        for (Vehicle v : vehicles) {
+            System.out.println(v.getInfo());
+            v.startEngine();
+            v.stopEngine();
+            System.out.println("---");
+        }
+        
+        // Need explicit casting to call subclass-specific methods
+        if (vehicles[1] instanceof Car) {
+            ((Car)vehicles[1]).honk();
+        }
+        
+        if (vehicles[2] instanceof ElectricCar) {
+            ((ElectricCar)vehicles[2]).chargeBattery();
+        }
+    }
+}
+```
+
+#### Method Overloading (Compile-time Polymorphism):
+
+```java
+public class Calculator {
+    // Method overloading - same name, different parameters
+    public int add(int a, int b) {
+        return a + b;
+    }
+    
+    public double add(double a, double b) {
+        return a + b;
+    }
+    
+    public int add(int a, int b, int c) {
+        return a + b + c;
+    }
+}
+```
+
+#### Benefits of Polymorphism:
+
+1. **Flexibility**: Allows treating objects of different types through a common interface
+2. **Extensibility**: New classes can be added with minimal code changes
+3. **Simplification**: Simplifies code that processes objects of different types
+4. **Decoupling**: Reduces dependencies between different parts of a program
+
+### 4. Abstraction
+
+Abstraction is the concept of hiding complex implementation details and showing only the necessary features of an object. It helps manage complexity by allowing you to focus on what an object does rather than how it does it.
+
+#### Key Aspects of Abstraction in Java:
+
+1. **Abstract Classes**: Cannot be instantiated, can contain abstract and concrete methods
+2. **Abstract Methods**: Methods without implementation, must be overridden by subclasses
+3. **Interfaces**: Completely abstract, can only contain method signatures and constants
+
+#### Example:
+
+```java
+// Abstract class
+public abstract class Shape {
+    // Concrete method
+    public void setColor(String color) {
+        System.out.println("Setting color to " + color);
+    }
+    
+    // Abstract method - no implementation
+    public abstract double calculateArea();
+    
+    // Abstract method
+    public abstract double calculatePerimeter();
+}
+
+// Concrete implementation
+public class Circle extends Shape {
+    private double radius;
+    
+    public Circle(double radius) {
+        this.radius = radius;
+    }
+    
+    @Override
+    public double calculateArea() {
+        return Math.PI * radius * radius;
+    }
+    
+    @Override
+    public double calculatePerimeter() {
+        return 2 * Math.PI * radius;
+    }
+}
+
+// Another concrete implementation
+public class Rectangle extends Shape {
+    private double length;
+    private double width;
+    
+    public Rectangle(double length, double width) {
+        this.length = length;
+        this.width = width;
+    }
+    
+    @Override
+    public double calculateArea() {
+        return length * width;
+    }
+    
+    @Override
+    public double calculatePerimeter() {
+        return 2 * (length + width);
+    }
+}
+```
+
+#### Interface Example:
+
+```java
+// Interface definition
+public interface Drawable {
+    void draw(); // implicitly public and abstract
+    
+    // Default method (Java 8+)
+    default void setOpacity(double opacity) {
+        System.out.println("Setting opacity to " + opacity);
+    }
+}
+
+// Interface implementation
+public class Circle extends Shape implements Drawable {
+    // ... previous code ...
+    
+    @Override
+    public void draw() {
+        System.out.println("Drawing a circle");
+    }
+}
+
+// Another implementation
+public class Rectangle extends Shape implements Drawable {
+    // ... previous code ...
+    
+    @Override
+    public void draw() {
+        System.out.println("Drawing a rectangle");
+    }
+}
+```
+
+#### Benefits of Abstraction:
+
+1. **Simplification**: Hides complexity and only shows essential features
+2. **Maintainability**: Changes to implementation don't affect the abstraction's users
+3. **Focus**: Allows focusing on what an object does rather than how it works
+4. **Reusability**: Promotes designing reusable components
+
+## Advanced OOP Concepts in Java
+
+### 1. Interfaces vs. Abstract Classes
+
+#### Abstract Classes:
+- Can have constructors
+- Can have instance variables
+- Can have concrete methods
+- Support single inheritance
+- Use when classes share implementation details
+
+#### Interfaces:
+- Cannot have constructors
+- Only support static and final variables
+- Traditionally only had abstract methods (Java 8 added default and static methods)
+- Support multiple inheritance
+- Use when unrelated classes implement the same behavior
+
+### 2. Multiple Inheritance through Interfaces
+
+Java doesn't support multiple inheritance for classes, but it does for interfaces:
+
+```java
+public interface Swimmable {
+    void swim();
+}
+
+public interface Flyable {
+    void fly();
+}
+
+// A duck can both swim and fly
+public class Duck implements Swimmable, Flyable {
+    @Override
+    public void swim() {
+        System.out.println("Duck is swimming");
+    }
+    
+    @Override
+    public void fly() {
+        System.out.println("Duck is flying");
+    }
+}
+```
+
+### 3. The Diamond Problem and How Java Avoids It
+
+The diamond problem occurs in multiple inheritance when a class inherits from two classes that both inherit from a common base class. Java avoids this through:
+
+1. **Single Class Inheritance**: A class can extend only one class
+2. **Default Method Conflict Resolution**: When a class implements multiple interfaces with the same default method, the class must override the method
+
+```java
+public interface A {
+    default void show() {
+        System.out.println("A");
+    }
+}
+
+public interface B {
+    default void show() {
+        System.out.println("B");
+    }
+}
+
+// This will cause a compile error unless show() is overridden
+public class C implements A, B {
+    // Must override to resolve the conflict
+    @Override
+    public void show() {
+        // Can call either or both parent implementations
+        A.super.show();
+        B.super.show();
+        System.out.println("C");
+    }
+}
+```
+
+### 4. Composition vs. Inheritance
+
+Composition is an object-oriented design concept where a class contains objects of other classes instead of inheriting from them.
+
+#### Composition Example:
+
+```java
+// Instead of inheriting from Engine
+public class Car {
+    // Composition - Car has-an Engine
+    private Engine engine;
+    private Transmission transmission;
+    
+    public Car(Engine engine, Transmission transmission) {
+        this.engine = engine;
+        this.transmission = transmission;
+    }
+    
+    public void start() {
+        engine.start();
+    }
+    
+    public void accelerate() {
+        engine.increasePower();
+        transmission.shiftGear();
+    }
+}
+
+public class Engine {
+    public void start() {
+        System.out.println("Engine started");
+    }
+    
+    public void increasePower() {
+        System.out.println("Increasing engine power");
+    }
+}
+
+public class Transmission {
+    public void shiftGear() {
+        System.out.println("Shifting to appropriate gear");
+    }
+}
+```
+
+#### Composition vs. Inheritance:
+- **Inheritance**: "is-a" relationship (Car is a Vehicle)
+- **Composition**: "has-a" relationship (Car has an Engine)
+
+Composition is often preferred because:
+- It provides better encapsulation
+- It's more flexible than inheritance
+- It doesn't break encapsulation
+- It avoids class hierarchy problems
+- It follows the principle "favor composition over inheritance"
+
+## SOLID Principles
+
+The SOLID principles are five design principles that help make software designs more understandable, flexible, and maintainable.
+
+### 1. Single Responsibility Principle (SRP)
+
+A class should have only one reason to change, meaning it should have only one job or responsibility.
+
+```java
+// Bad: Class has multiple responsibilities
+public class User {
+    private String name;
+    private String email;
+    
+    // User data management
+    public void save() {
+        // Save user to database
+    }
+    
+    // Email handling
+    public void sendEmail(String message) {
+        // Send email to user
+    }
+    
+    // Report generation
+    public String generateReport() {
+        // Generate report about user
+    }
+}
+
+// Better: Separated responsibilities
+public class User {
+    private String name;
+    private String email;
+    
+    // Getters and setters
+}
+
+public class UserRepository {
+    public void save(User user) {
+        // Save user to database
+    }
+    
+    public User find(String email) {
+        // Find user in database
+    }
+}
+
+public class EmailService {
+    public void sendEmail(User user, String message) {
+        // Send email
+    }
+}
+
+public class ReportGenerator {
+    public String generateUserReport(User user) {
+        // Generate report
+    }
+}
+```
+
+### 2. Open/Closed Principle (OCP)
+
+Software entities should be open for extension but closed for modification.
+
+```java
+// Bad: Adding new shapes requires modifying the AreaCalculator
+public class AreaCalculator {
+    public double calculateArea(Object shape) {
+        if (shape instanceof Rectangle) {
+            Rectangle rectangle = (Rectangle) shape;
+            return rectangle.getWidth() * rectangle.getHeight();
+        } 
+        else if (shape instanceof Circle) {
+            Circle circle = (Circle) shape;
+            return Math.PI * circle.getRadius() * circle.getRadius();
+        }
+        // Adding a new shape requires modifying this class
+        return 0;
+    }
+}
+
+// Better: Using polymorphism to make it open for extension
+public interface Shape {
+    double calculateArea();
+}
+
+public class Rectangle implements Shape {
+    private double width;
+    private double height;
+    
+    @Override
+    public double calculateArea() {
+        return width * height;
+    }
+}
+
+public class Circle implements Shape {
+    private double radius;
+    
+    @Override
+    public double calculateArea() {
+        return Math.PI * radius * radius;
+    }
+}
+
+// Now we can add new shapes without modifying the calculator
+public class AreaCalculator {
+    public double calculateArea(Shape shape) {
+        return shape.calculateArea();
+    }
+}
+```
+
+### 3. Liskov Substitution Principle (LSP)
+
+Objects of a superclass should be replaceable with objects of a subclass without affecting the correctness of the program.
+
+```java
+// Violating LSP
+public class Rectangle {
+    protected int width;
+    protected int height;
+    
+    public void setWidth(int width) {
+        this.width = width;
+    }
+    
+    public void setHeight(int height) {
+        this.height = height;
+    }
+    
+    public int getArea() {
+        return width * height;
+    }
+}
+
+// Square is a rectangle where width equals height
+public class Square extends Rectangle {
+    // Violates LSP because it changes the behavior of setWidth/setHeight
+    @Override
+    public void setWidth(int width) {
+        this.width = width;
+        this.height = width; // A square must have equal sides
+    }
+    
+    @Override
+    public void setHeight(int height) {
+        this.height = height;
+        this.width = height; // A square must have equal sides
+    }
+}
+
+// This breaks when a Square is used:
+public void testRectangle(Rectangle r) {
+    r.setWidth(5);
+    r.setHeight(4);
+    // For a Rectangle, area should be 20
+    // But for a Square, area will be 16 which breaks the expectation
+    assert r.getArea() == 20; 
+}
+
+// Better: Use composition or interfaces instead of inheritance
+public interface Shape {
+    int getArea();
+}
+
+public class Rectangle implements Shape {
+    private int width;
+    private int height;
+    
+    public Rectangle(int width, int height) {
+        this.width = width;
+        this.height = height;
+    }
+    
+    public void setWidth(int width) {
+        this.width = width;
+    }
+    
+    public void setHeight(int height) {
+        this.height = height;
+    }
+    
+    @Override
+    public int getArea() {
+        return width * height;
+    }
+}
+
+public class Square implements Shape {
+    private int side;
+    
+    public Square(int side) {
+        this.side = side;
+    }
+    
+    public void setSide(int side) {
+        this.side = side;
+    }
+    
+    @Override
+    public int getArea() {
+        return side * side;
+    }
+}
+```
+
+### 4. Interface Segregation Principle (ISP)
+
+Clients should not be forced to depend on interfaces they do not use.
+
+```java
+// Violating ISP - fat interface
+public interface Worker {
+    void work();
+    void eat();
+    void sleep();
+}
+
+// Problem: Robot must implement methods it doesn't need
+public class Human implements Worker {
+    @Override
+    public void work() { /* implementation */ }
+    
+    @Override
+    public void eat() { /* implementation */ }
+    
+    @Override
+    public void sleep() { /* implementation */ }
+}
+
+public class Robot implements Worker {
+    @Override
+    public void work() { /* implementation */ }
+    
+    @Override
+    public void eat() {
+        // Robots don't eat, but forced to implement
+        throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public void sleep() {
+        // Robots don't sleep, but forced to implement
+        throw new UnsupportedOperationException();
+    }
+}
+
+// Better: Segregated interfaces
+public interface Workable {
+    void work();
+}
+
+public interface Eatable {
+    void eat();
+}
+
+public interface Sleepable {
+    void sleep();
+}
+
+public class Human implements Workable, Eatable, Sleepable {
+    @Override
+    public void work() { /* implementation */ }
+    
+    @Override
+    public void eat() { /* implementation */ }
+    
+    @Override
+    public void sleep() { /* implementation */ }
+}
+
+public class Robot implements Workable {
+    @Override
+    public void work() { /* implementation */ }
+    // No need to implement unused methods
+}
+```
+
+### 5. Dependency Inversion Principle (DIP)
+
+High-level modules should not depend on low-level modules. Both should depend on abstractions. Abstractions should not depend on details. Details should depend on abstractions.
+
+```java
+// Violating DIP
+public class LightBulb {
+    public void turnOn() {
+        System.out.println("LightBulb turned on");
+    }
+    
+    public void turnOff() {
+        System.out.println("LightBulb turned off");
+    }
+}
+
+// ElectricSwitch depends on the concrete LightBulb class
+public class ElectricSwitch {
+    private LightBulb bulb;
+    private boolean on;
+    
+    public ElectricSwitch(LightBulb bulb) {
+        this.bulb = bulb;
+        this.on = false;
+    }
+    
+    public void press() {
+        if (on) {
+            bulb.turnOff();
+            on = false;
+        } else {
+            bulb.turnOn();
+            on = true;
+        }
+    }
+}
+
+// Better: Depend on abstraction
+public interface Switchable {
+    void turnOn();
+    void turnOff();
+}
+
+public class LightBulb implements Switchable {
+    @Override
+    public void turnOn() {
+        System.out.println("LightBulb turned on");
+    }
+    
+    @Override
+    public void turnOff() {
+        System.out.println("LightBulb turned off");
+    }
+}
+
+public class Fan implements Switchable {
+    @Override
+    public void turnOn() {
+        System.out.println("Fan turned on");
+    }
+    
+    @Override
+    public void turnOff() {
+        System.out.println("Fan turned off");
+    }
+}
+
+// ElectricSwitch now depends on the abstraction
+public class ElectricSwitch {
+    private Switchable device;
+    private boolean on;
+    
+    public ElectricSwitch(Switchable device) {
+        this.device = device;
+        this.on = false;
+    }
+    
+    public void press() {
+        if (on) {
+            device.turnOff();
+            on = false;
+        } else {
+            device.turnOn();
+            on = true;
+        }
+    }
+}
+```
+
+## Best Practices in Object-Oriented Design
+
+1. **Keep Classes Focused**: Follow the Single Responsibility Principle
+2. **Favor Composition Over Inheritance**: Use has-a relationships more than is-a relationships
+3. **Program to Interfaces**: Depend on abstractions, not concrete implementations
+4. **Keep Inheritance Hierarchies Shallow**: Deep hierarchies become difficult to understand and maintain
+5. **Use Encapsulation**: Hide implementation details and expose only what's necessary
+6. **Follow the Law of Demeter (Principle of Least Knowledge)**: Objects should only talk to their immediate friends
+7. **Make Fields Private**: Expose them through methods if needed
+8. **Avoid Premature Optimization**: First make it right, then make it fast
+9. **Use Design Patterns**: Apply proven solutions to common problems
+10. **Write for Readability**: Code is read more often than it is written
+
+## Conclusion
+
+Object-Oriented Programming in Java provides a structured approach to software development, focusing on creating reusable, maintainable, and flexible code. By understanding and applying the principles of encapsulation, inheritance, polymorphism, and abstraction, along with the SOLID design principles, you can design software systems that are robust, maintainable, and adaptable to changing requirements.
+
+Java's comprehensive support for OOP concepts makes it an excellent language for implementing object-oriented designs. Whether you're building a simple application or a complex enterprise system, these principles provide a solid foundation for creating well-structured, modular code.
+
 # Static vs Dynamic Polymorphism in Java
 
 Polymorphism is one of the four pillars of object-oriented programming (along with encapsulation, inheritance, and abstraction). In Java, polymorphism comes in two distinct forms: static (compile-time) polymorphism and dynamic (runtime) polymorphism. Understanding the differences between these two is crucial for senior Java developers.
