@@ -1502,3 +1502,276 @@ class Result {
 - For objects, a copy of the reference (memory address) is passed.
 - You can modify the internal state of objects in methods, but you cannot change which object the original reference points to.
 - Understanding this distinction is crucial for writing correct Java code and avoiding unexpected behaviors.
+
+# Returning Multiple Values from Methods in Java
+
+Java methods can only return a single value. However, there are several strategies to work around this limitation when you need to return multiple values. This document outlines the most common approaches with examples.
+
+## 1. Return a Custom Class
+
+The most common and object-oriented approach is to create a custom class to encapsulate multiple return values.
+
+```java
+public class CalculationResult {
+    private final int sum;
+    private final int product;
+    private final double average;
+    
+    public CalculationResult(int sum, int product, double average) {
+        this.sum = sum;
+        this.product = product;
+        this.average = average;
+    }
+    
+    // Getters
+    public int getSum() { return sum; }
+    public int getProduct() { return product; }
+    public double getAverage() { return average; }
+}
+
+public class Calculator {
+    public CalculationResult calculate(int a, int b) {
+        int sum = a + b;
+        int product = a * b;
+        double average = (a + b) / 2.0;
+        
+        return new CalculationResult(sum, product, average);
+    }
+}
+
+// Usage
+Calculator calculator = new Calculator();
+CalculationResult result = calculator.calculate(5, 7);
+System.out.println("Sum: " + result.getSum());
+System.out.println("Product: " + result.getProduct());
+System.out.println("Average: " + result.getAverage());
+```
+
+### Benefits:
+- Type safety
+- Descriptive field names
+- Semantic meaning to the returned values
+- Can be extended with additional fields or methods
+
+## 2. Use Java Records (Java 16+)
+
+Java 16 introduced records, which are immutable data carriers that require less boilerplate code.
+
+```java
+// Define the record
+public record CalculationResult(int sum, int product, double average) {}
+
+public class Calculator {
+    public CalculationResult calculate(int a, int b) {
+        int sum = a + b;
+        int product = a * b;
+        double average = (a + b) / 2.0;
+        
+        return new CalculationResult(sum, product, average);
+    }
+}
+
+// Usage
+Calculator calculator = new Calculator();
+CalculationResult result = calculator.calculate(5, 7);
+System.out.println("Sum: " + result.sum());
+System.out.println("Product: " + result.product());
+System.out.println("Average: " + result.average());
+```
+
+### Benefits:
+- Concise syntax
+- Immutable by default
+- Automatic implementations of equals(), hashCode(), and toString()
+- Built-in accessor methods
+
+## 3. Return a Collection or Array
+
+For homogeneous values of the same type, you can use collections or arrays.
+
+```java
+import java.util.Arrays;
+import java.util.List;
+
+public class MinMaxFinder {
+    public List<Integer> findMinMax(int[] numbers) {
+        if (numbers.length == 0) {
+            return Arrays.asList(0, 0);
+        }
+        
+        int min = numbers[0];
+        int max = numbers[0];
+        
+        for (int num : numbers) {
+            if (num < min) min = num;
+            if (num > max) max = num;
+        }
+        
+        return Arrays.asList(min, max);
+    }
+}
+
+// Usage
+MinMaxFinder finder = new MinMaxFinder();
+List<Integer> result = finder.findMinMax(new int[]{5, 3, 8, 1, 7});
+int min = result.get(0);
+int max = result.get(1);
+System.out.println("Min: " + min + ", Max: " + max);
+```
+
+### Benefits:
+- Simple for homogeneous data
+- Works with any collection type (List, Set, etc.)
+- Easy to iterate over results
+
+### Drawbacks:
+- Lacks semantic meaning (relies on order)
+- Limited type safety (indices can be confusing)
+- Not suitable for values of different types
+
+## 4. Use a Map
+
+When returning key-value pairs, especially with different types, a Map can be useful.
+
+```java
+import java.util.HashMap;
+import java.util.Map;
+
+public class UserProcessor {
+    public Map<String, Object> processUser(String username) {
+        Map<String, Object> result = new HashMap<>();
+        
+        // Simulate user processing
+        result.put("isValid", true);
+        result.put("score", 85);
+        result.put("lastActiveDate", new java.util.Date());
+        
+        return result;
+    }
+}
+
+// Usage
+UserProcessor processor = new UserProcessor();
+Map<String, Object> userData = processor.processUser("johndoe");
+
+boolean isValid = (Boolean) userData.get("isValid");
+int score = (Integer) userData.get("score");
+java.util.Date lastActive = (java.util.Date) userData.get("lastActiveDate");
+
+System.out.println("Valid user: " + isValid);
+System.out.println("Score: " + score);
+System.out.println("Last active: " + lastActive);
+```
+
+### Benefits:
+- Flexible for heterogeneous data
+- Keys provide semantic meaning
+- Can be dynamically extended
+
+### Drawbacks:
+- Type casting required
+- Runtime type safety issues
+- Performance overhead
+
+## 5. Output Parameters
+
+Pass mutable objects as parameters and modify them inside the method.
+
+```java
+public class CircleCalculator {
+    public static class CircleProperties {
+        public double area;
+        public double circumference;
+    }
+    
+    public void calculateProperties(double radius, CircleProperties result) {
+        result.area = Math.PI * radius * radius;
+        result.circumference = 2 * Math.PI * radius;
+    }
+}
+
+// Usage
+CircleCalculator calculator = new CircleCalculator();
+CircleCalculator.CircleProperties properties = new CircleCalculator.CircleProperties();
+
+calculator.calculateProperties(5.0, properties);
+System.out.println("Area: " + properties.area);
+System.out.println("Circumference: " + properties.circumference);
+```
+
+### Benefits:
+- Can be useful in specific performance-critical scenarios
+- Avoids creating a new object for the return value
+
+### Drawbacks:
+- Less intuitive than returning values
+- Violates method purity
+- Mutable state can lead to bugs
+
+## 6. Use Third-Party Libraries
+
+Libraries like Apache Commons, Guava, or JavaFX provide utility classes like Pair or Tuple.
+
+```java
+import org.apache.commons.lang3.tuple.Pair;
+
+public class UserFinder {
+    public Pair<Integer, String> findUser(int id) {
+        // Simulate database lookup
+        return Pair.of(id, "John Doe");
+    }
+}
+
+// Usage
+UserFinder finder = new UserFinder();
+Pair<Integer, String> user = finder.findUser(42);
+System.out.println("ID: " + user.getLeft());
+System.out.println("Name: " + user.getRight());
+```
+
+### Benefits:
+- Ready-to-use implementations
+- Support for 2, 3, or more values (depending on library)
+- Often immutable
+
+### Drawbacks:
+- External dependency
+- Less semantic meaning than custom classes
+- Limited to fixed number of elements
+
+## Comparison of Approaches
+
+| Approach | Type Safety | Semantic Clarity | Ease of Use | Best For |
+|----------|------------|-----------------|-------------|----------|
+| Custom Class | High | High | Medium | Related values with clear meaning |
+| Record (Java 16+) | High | High | High | Same as custom class, with less boilerplate |
+| Collection/Array | Medium | Low | Medium | Multiple values of the same type |
+| Map | Low | Medium | Medium | Dynamic sets of named values |
+| Output Parameters | Medium | Medium | Low | Performance-critical code |
+| Library Classes | Medium | Low | High | Quick solutions without custom classes |
+
+## Best Practices
+
+1. **Prefer custom classes or records** for most scenarios, especially when:
+   - The values are semantically related
+   - You need to reuse the structure
+   - Type safety is important
+
+2. **Use collections** when:
+   - All values have the same type
+   - The order is meaningful
+   - The number of values might vary
+
+3. **Use maps** when:
+   - Keys are strings or identifiers
+   - Values have different types
+   - The set of values is dynamic
+
+4. **Consider readability and maintainability**:
+   - Well-named classes and fields make code more understandable
+   - Immutable return types reduce bugs
+   - Clear semantic relationships improve code quality
+
+5. **Choose based on context**:
+   - API design might call for different approaches than internal implementations
+   - Consider the caller's needs and usage patterns
