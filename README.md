@@ -1321,3 +1321,184 @@ button.addActionListener(e -> System.out.println("Button clicked"));
 ```
 
 Understanding when to use each type of nested class helps create more maintainable and readable code.
+
+# Pass-by-Value in Java
+
+Java is strictly a pass-by-value language, which is often a source of confusion for developers, especially those with experience in other programming languages. This document explains what pass-by-value means in Java, how it works with both primitive and reference types, and clarifies common misconceptions.
+
+## What is Pass-by-Value?
+
+Pass-by-value means that when you pass an argument to a method, a copy of the value is created and passed to the method. Changes to the parameter inside the method do not affect the original value outside the method.
+
+## How Pass-by-Value Works in Java
+
+Java handles pass-by-value differently depending on whether the argument is a primitive type or a reference type.
+
+### 1. Primitive Types
+
+For primitive types (int, char, boolean, etc.), a copy of the actual value is passed to the method. Any changes to the parameter inside the method have no effect on the original variable.
+
+```java
+public class PrimitiveExample {
+    public static void main(String[] args) {
+        int x = 10;
+        System.out.println("Before method call: x = " + x);  // Output: 10
+        
+        modifyValue(x);
+        
+        System.out.println("After method call: x = " + x);   // Output: 10 (unchanged)
+    }
+    
+    public static void modifyValue(int value) {
+        value = 20;  // Changes only the local copy
+        System.out.println("Inside method: value = " + value);  // Output: 20
+    }
+}
+```
+
+In this example, the value of `x` remains `10` even after the method call because Java passed a copy of the value to the method, not the original variable.
+
+### 2. Reference Types (Objects)
+
+For reference types (objects), the situation is slightly more complex and often leads to confusion. When you pass an object to a method, Java makes a copy of the reference to the object, not a copy of the object itself.
+
+```java
+public class ReferenceExample {
+    public static void main(String[] args) {
+        Person person = new Person("John");
+        System.out.println("Before method call: " + person.getName());  // Output: John
+        
+        modifyPerson(person);
+        
+        System.out.println("After method call: " + person.getName());   // Output: John Doe
+    }
+    
+    public static void modifyPerson(Person personParam) {
+        // Modifies the object that personParam refers to
+        personParam.setName("John Doe");
+    }
+    
+    static class Person {
+        private String name;
+        
+        public Person(String name) {
+            this.name = name;
+        }
+        
+        public String getName() {
+            return name;
+        }
+        
+        public void setName(String name) {
+            this.name = name;
+        }
+    }
+}
+```
+
+In this example, the name of the Person object changed because both `person` in the main method and `personParam` in the `modifyPerson` method reference the same object. Even though Java passed a copy of the reference, both references point to the same object in memory.
+
+### 3. Reassigning References
+
+If you reassign the parameter to refer to a new object within the method, it won't affect the original reference.
+
+```java
+public class ReassignmentExample {
+    public static void main(String[] args) {
+        Person person = new Person("John");
+        System.out.println("Before method call: " + person.getName());  // Output: John
+        
+        replacePerson(person);
+        
+        System.out.println("After method call: " + person.getName());   // Output: John (unchanged)
+    }
+    
+    public static void replacePerson(Person personParam) {
+        // This creates a new Person object and makes personParam refer to it
+        personParam = new Person("Jane");
+        
+        // This modification only affects the new object, not the original one
+        System.out.println("Inside method: " + personParam.getName());  // Output: Jane
+    }
+    
+    static class Person {
+        private String name;
+        
+        public Person(String name) {
+            this.name = name;
+        }
+        
+        public String getName() {
+            return name;
+        }
+        
+        public void setName(String name) {
+            this.name = name;
+        }
+    }
+}
+```
+
+In this example, the original `person` object remains unchanged because the `replacePerson` method only changed what its local copy of the reference points to. The original reference in `main` still points to the original object.
+
+## Common Misconceptions
+
+### Misconception 1: "Java is pass-by-reference for objects"
+
+This is incorrect. Java is always pass-by-value. The confusion arises because the value being passed is a reference (memory address) for objects. Java never passes references to variables; it passes copies of values, which for objects are reference values.
+
+### Misconception 2: "I can't modify an object in a method"
+
+You can modify the state of an object that's passed to a method, but you cannot change which object the original reference points to.
+
+### Misconception 3: "Strings are handled differently"
+
+Strings in Java are immutable objects. When you appear to modify a String, you're actually creating a new String object. This is a property of the String class, not a different parameter passing mechanism.
+
+## Practical Implications
+
+### 1. Mutable vs. Immutable Objects
+
+- **Mutable objects** (like `ArrayList`, `StringBuilder`, most custom classes) can be modified within methods.
+- **Immutable objects** (like `String`, `Integer`, `Double`) cannot be changed; any "modification" creates a new object.
+
+### 2. Returning Modified Objects
+
+If you need to replace an object with a new one, return the new object from the method:
+
+```java
+public static Person createNewPerson(Person oldPerson) {
+    return new Person("New " + oldPerson.getName());
+}
+
+// Usage
+person = createNewPerson(person);
+```
+
+### 3. Multiple Return Values
+
+If you need to return multiple values, use a container object:
+
+```java
+public static Result processValues(int x, int y) {
+    return new Result(x + y, x * y);
+}
+
+class Result {
+    public final int sum;
+    public final int product;
+    
+    public Result(int sum, int product) {
+        this.sum = sum;
+        this.product = product;
+    }
+}
+```
+
+## Summary
+
+- Java is strictly pass-by-value.
+- For primitive types, a copy of the actual value is passed.
+- For objects, a copy of the reference (memory address) is passed.
+- You can modify the internal state of objects in methods, but you cannot change which object the original reference points to.
+- Understanding this distinction is crucial for writing correct Java code and avoiding unexpected behaviors.
