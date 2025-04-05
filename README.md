@@ -3857,3 +3857,221 @@ Parallel streams in Java provide an elegant way to leverage multi-core processor
 However, they're not a silver bullet for all performance problems. Careful consideration of the workload characteristics, potential thread safety issues, and the overhead of parallelization is necessary to determine if parallel streams are appropriate for your specific use case.
 
 When used correctly, parallel streams can significantly improve application performance while maintaining readable, maintainable code.
+
+# Database Indexes and ACID Properties
+
+## Types of Indexes
+
+### Primary Index
+- Automatically created on the primary key column(s)
+- Enforces uniqueness of the primary key values
+- In many database systems (like InnoDB in MySQL), physically orders rows on disk
+- Critical for efficient data retrieval when searching by primary key
+- Always has high cardinality (many unique values)
+
+### Unique Index
+- Guarantees that all values in the indexed column(s) are distinct
+- Prevents duplicate values (similar to a PRIMARY KEY constraint but can allow NULL values)
+- Can be applied to non-primary key columns
+- Example: Email addresses in a users table
+
+### Composite Index
+- Created on multiple columns rather than a single column
+- Useful for queries that filter or sort by multiple columns
+- Column order matters significantly for query performance
+- Example: Index on (last_name, first_name) optimizes queries that filter by last name or by both last and first names
+- Not as effective for queries that only reference trailing columns of the index
+
+### Full-text Index
+- Specialized index for text searching operations
+- Enables fast searching within text documents or large text fields
+- Supports operations like `MATCH AGAINST` in MySQL or `CONTAINS` in SQL Server
+- More efficient than `LIKE '%keyword%'` for complex text searches
+- Often involves techniques like stemming, stop word removal, and relevance ranking
+
+### Hash Index
+- Uses a hash function to map indexed values to a hash table
+- Extremely fast for equality comparisons (`WHERE column = value`)
+- Does not support range-based queries (`WHERE column > value`)
+- Cannot be used for sorting or partial matching
+- Memory-efficient but limited functionality
+- In MySQL, used by Memory tables by default; in PostgreSQL, available as an index type
+
+### Clustered Index
+- Determines the physical order of data in a table
+- Only one clustered index per table (since data can only be sorted one way)
+- In SQL Server and InnoDB (MySQL), the primary key is automatically clustered
+- Provides very fast access for queries involving the clustered columns
+- Range queries on the clustered key are particularly efficient
+
+### Non-Clustered Index
+- Stored separately from the actual data rows
+- Contains the indexed columns and pointers to the actual rows
+- A table can have multiple non-clustered indexes
+- Slightly slower than clustered indexes for lookups but offers more flexibility
+- Good for columns frequently used in search conditions but not requiring physical ordering
+
+## ACID Properties
+
+ACID is an acronym representing the four essential properties that guarantee reliable transaction processing in database systems:
+
+### Atomicity (All or Nothing)
+- Ensures that a transaction is treated as a single, indivisible unit
+- Either all operations within the transaction succeed, or none do
+- If any part of the transaction fails, the entire transaction is rolled back
+- Protects against partial updates that could leave the database in an inconsistent state
+
+**Example:**
+```sql
+-- Bank transfer transaction
+BEGIN TRANSACTION;
+    UPDATE accounts SET balance = balance - 1000 WHERE account_id = 'A';
+    UPDATE accounts SET balance = balance + 1000 WHERE account_id = 'B';
+    -- If either update fails, the entire transaction is rolled back
+COMMIT;
+```
+
+### Consistency (Data Integrity)
+- Ensures that a transaction can only bring the database from one valid state to another
+- All constraints, cascades, triggers, and rules are enforced
+- Referential integrity and domain constraints are maintained
+- The database remains consistent before and after the transaction
+
+**Example:**
+```sql
+-- This transaction will fail if it would violate a NOT NULL constraint
+BEGIN TRANSACTION;
+    INSERT INTO users (id, username, email) VALUES (1, 'john_doe', NULL);
+    -- If email has a NOT NULL constraint, the transaction will fail
+COMMIT;
+```
+
+### Isolation (Concurrent Transactions)
+- Ensures that concurrent execution of transactions results in a system state identical to that which would be obtained if transactions were executed sequentially
+- Prevents interference between concurrent transactions
+- Implemented through various isolation levels that trade off performance for strictness
+
+**Common Isolation Levels:**
+1. **READ UNCOMMITTED**: Allows dirty reads (reading uncommitted changes)
+2. **READ COMMITTED**: Prevents dirty reads but allows non-repeatable reads
+3. **REPEATABLE READ**: Prevents dirty and non-repeatable reads but allows phantom reads
+4. **SERIALIZABLE**: Highest isolation level, prevents all concurrency issues
+
+**Example of a Non-repeatable Read (avoided in REPEATABLE READ or higher):**
+```
+Transaction 1: SELECT balance FROM accounts WHERE id = 'A'; -- Returns $1000
+Transaction 2: UPDATE accounts SET balance = $2000 WHERE id = 'A'; COMMIT;
+Transaction 1: SELECT balance FROM accounts WHERE id = 'A'; -- Now returns $2000
+```
+
+### Durability (Persistence)
+- Guarantees that once a transaction is committed, its effects are permanent
+- Committed changes survive system failures, crashes, or power outages
+- Typically implemented through transaction logs and database backups
+- Modern databases use write-ahead logging to ensure durability
+
+**Example:**
+```sql
+BEGIN TRANSACTION;
+    INSERT INTO orders (customer_id, total) VALUES (42, 199.99);
+COMMIT; -- Once committed, this data will persist even if the system crashes
+```
+
+## Additional Database Concepts
+
+### Composite Keys
+- Primary keys that consist of two or more columns
+- Used when no single column uniquely identifies a record
+- Common in join tables representing many-to-many relationships
+- Example: In a `course_students` table, the combination of `course_id` and `student_id` might form the primary key
+
+### Views
+- Virtual tables based on the result of a SELECT query
+- Do not store data physically
+- Can simplify complex queries and provide an additional security layer
+- Can be used to present a consistent interface while the underlying schema evolves
+
+**Example:**
+```sql
+CREATE VIEW active_customers AS
+SELECT * FROM customers WHERE status = 'active';
+```
+
+### Many-to-Many Relationships
+- Implemented using a junction (join) table containing foreign keys to both related tables
+- Example: Students and Courses have a many-to-many relationship
+- The junction table (`student_courses`) would have columns for `student_id` and `course_id`
+
+```
+┌──────────┐     ┌───────────────┐     ┌────────┐
+│ Students │     │ student_course│     │ Courses│
+├──────────┤     ├───────────────┤     ├────────┤
+│student_id│◄────┤student_id (FK)│     │course_id│
+│name      │     │course_id (FK) ├────►│title    │
+└──────────┘     └───────────────┘     └────────┘
+```
+
+### Optimistic vs Pessimistic Locking
+
+#### Optimistic Locking
+- Assumes conflicts are rare and doesn't lock data when reading
+- Uses version numbers or timestamps to detect conflicts
+- Checks if data has changed before committing updates
+- More scalable in read-heavy environments
+- Example: Using a version column that increments with each update
+
+```sql
+-- Read the record
+SELECT id, data, version FROM items WHERE id = 1;
+
+-- Later, update with version check
+UPDATE items 
+SET data = 'new value', version = version + 1 
+WHERE id = 1 AND version = original_version;
+
+-- If rows affected = 0, someone else updated the record
+```
+
+#### Pessimistic Locking
+- Assumes conflicts are likely and locks data when reading
+- Prevents other transactions from modifying the locked data
+- Can lead to deadlocks if not managed carefully
+- Example: Using SELECT FOR UPDATE to lock rows
+
+```sql
+BEGIN TRANSACTION;
+-- Lock the rows for update
+SELECT * FROM accounts WHERE id = 'A' FOR UPDATE;
+-- Now other transactions can't modify this row until our transaction completes
+UPDATE accounts SET balance = balance - 100 WHERE id = 'A';
+COMMIT;
+```
+
+## Advanced Index Considerations
+
+### Index Cardinality
+- Refers to the uniqueness of values in an indexed column
+- High cardinality (many unique values) makes an index more selective and efficient
+- Low cardinality indexes (few unique values) may not improve performance significantly
+
+### Covering Indexes
+- Include all columns needed by a query, allowing the database to retrieve data directly from the index
+- Eliminates the need to access the table data, improving performance
+- Example: If you frequently query `SELECT first_name, last_name FROM users WHERE status = 'active'`, a covering index would be on `(status, first_name, last_name)`
+
+### Index Maintenance
+- Indexes improve query performance but can slow down write operations
+- Regular maintenance (rebuilding, reorganizing) may be necessary for optimal performance
+- Consider the trade-off between query performance and write overhead when designing indexes
+
+### B-Tree vs B+Tree
+- Most database systems use B+Tree structures for indexing
+- B+Trees store all data in leaf nodes and maintain pointers between them
+- This structure allows for efficient range queries and sequential access
+- Hash indexes are typically implemented using hash tables instead
+
+### When to Avoid Indexes
+- Very small tables where full table scans are efficient
+- Columns with low cardinality (few unique values)
+- Tables with frequent large batch updates or inserts
+- Columns rarely used in WHERE, JOIN, or ORDER BY clauses
