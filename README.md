@@ -7361,3 +7361,260 @@ map.forEach(100, (k, v) -> process(k, v));
 `ConcurrentHashMap` is a powerful tool for building high-performance concurrent applications in Java. It provides an excellent balance of thread safety and performance for scenarios requiring shared access to key-value data. By understanding its features, limitations, and best practices, developers can effectively utilize this collection to build scalable, thread-safe applications without sacrificing performance.
 
 Whether you're implementing caches, counters, or any other shared data structure in a multi-threaded environment, `ConcurrentHashMap` should be your go-to solution when thread safety and high performance are required.
+
+
+# JVM Architecture: A Comprehensive Overview
+
+The Java Virtual Machine (JVM) is a virtual machine that enables a computer to run Java programs as well as programs written in other languages that are compiled to Java bytecode. It's an essential component of the Java platform, providing the runtime environment in which Java programs execute.
+
+## Overview of JVM Architecture
+
+The JVM architecture can be divided into several major components:
+
+1. **Class Loader Subsystem**
+2. **Runtime Data Areas**
+3. **Execution Engine**
+4. **Native Method Interface (JNI)**
+5. **Native Method Libraries**
+
+Let's explore each of these components in detail.
+
+## 1. Class Loader Subsystem
+
+The Class Loader Subsystem is responsible for loading class files into memory. It performs three main functions:
+
+### Loading
+
+The Class Loader reads the `.class` file, generates the corresponding binary data, and saves it in the method area. For each `.class` file, the JVM stores the following information in the method area:
+- Fully qualified name of the loaded class and its immediate parent class
+- Whether the `.class` file is related to a Class, Interface, or Enum
+- Modifiers, variables, and method information, etc.
+
+After loading the `.class` file, the JVM creates a `Class` object in the heap memory to represent the class.
+
+### Three Primary Class Loaders:
+
+1. **Bootstrap Class Loader**: Loads the core Java libraries (`java.lang`, `java.util`, etc.) located in the `$JAVA_HOME/jre/lib` directory. It's implemented in native code.
+
+2. **Extension Class Loader**: Loads the classes from the extension directories (`$JAVA_HOME/jre/lib/ext` or any other directory specified by the `java.ext.dirs` system property).
+
+3. **Application Class Loader**: Loads the application class files from the classpath specified by the `CLASSPATH` environment variable or the `-classpath` or `-cp` command-line option.
+
+### Linking
+
+Linking involves three steps:
+
+1. **Verification**: Ensures the correctness of the imported `.class` file by checking whether it follows the Java language specifications and does not violate Java's security rules.
+
+2. **Preparation**: Allocates memory for class variables and initializes them with default values.
+
+3. **Resolution**: Replaces symbolic references from the type with direct references.
+
+### Initialization
+
+This is the final phase of class loading where all static variables are assigned with their values defined in the code and static blocks (if any).
+
+## 2. Runtime Data Areas
+
+The JVM defines various runtime data areas that are used during program execution:
+
+### Method Area (Metaspace in Java 8+)
+
+The Method Area stores class structures such as the runtime constant pool, field, method data, and the code for methods and constructors. In JDK 8 and later, the Method Area is replaced by Metaspace, which is not part of the heap and grows automatically.
+
+### Heap
+
+The Heap is the runtime data area where objects are allocated. It is created at the JVM start-up, and it can increase or decrease in size while the application runs. When the heap becomes full, garbage collection is performed to free up space. The heap is divided into:
+
+1. **Young Generation**:
+   - **Eden Space**: Where new objects are created
+   - **Survivor Spaces (S0 and S1)**: Objects that survive garbage collection in Eden are moved to the survivor spaces
+
+2. **Old Generation (Tenured)**: Objects that have survived multiple garbage collection cycles in the Young Generation are moved here.
+
+### Java Stack
+
+Each thread has its own JVM stack, created at the same time as the thread. The Java stack stores frames, with each frame containing:
+- Local variables
+- Operand stack
+- Reference to the runtime constant pool of the current method's class
+
+The stack is used for method invocation and returns, allocating local variables, and tracking execution flow.
+
+### Program Counter (PC) Register
+
+Each thread has its own PC Register that contains the address of the JVM instruction currently being executed. If the current method is native, the PC is undefined.
+
+### Native Method Stack
+
+The Native Method Stack contains all the native methods used in the application. It is created for each thread.
+
+## 3. Execution Engine
+
+The Execution Engine executes the instructions contained in the methods of loaded classes. It consists of:
+
+### Interpreter
+
+Interprets the bytecode stream line by line and executes it. The interpreter's main disadvantage is that when a method is called multiple times, each time it needs to be interpreted.
+
+### Just-In-Time (JIT) Compiler
+
+The JIT compiler addresses the performance issue of the interpreter. It compiles entire bytecode into native machine code, so when a method is called multiple times, the JVM calls the compiled code directly instead of interpreting it each time. This improves performance significantly.
+
+The JIT Compiler has several components:
+
+1. **Intermediate Code Generator**: Generates intermediate code
+2. **Code Optimizer**: Optimizes the intermediate code for better performance
+3. **Target Code Generator**: Converts intermediate code to native machine code
+4. **Profiler**: Identifies hot spots (frequently executed code)
+
+### Garbage Collector
+
+The Garbage Collector (GC) automatically reclaims memory by removing objects that are no longer reachable. GC is a daemon thread that runs in the background.
+
+The main garbage collection algorithms in the JVM include:
+
+1. **Serial GC**: Simple, single-threaded collector
+2. **Parallel GC**: Multi-threaded collector for Young Generation
+3. **Concurrent Mark Sweep (CMS)**: Minimizes pauses by doing most of its work concurrently
+4. **G1 GC (Garbage First)**: Server-style collector with predictable pause times
+5. **Z GC**: Low-latency collector designed for very large heaps (Java 11+)
+6. **Shenandoah**: Low-pause collector similar to Z GC (Java 12+)
+
+## 4. Native Method Interface (JNI)
+
+The JNI is a framework that enables Java code to call and be called by native applications (programs specific to a hardware and operating system platform) and libraries written in other languages such as C, C++, and Assembly.
+
+## 5. Native Method Libraries
+
+Native Method Libraries are libraries (usually written in C/C++) needed by the Execution Engine.
+
+## JVM Memory Management
+
+### Stack Memory
+
+- Contains method-specific values and references
+- Fixed in size and cannot be dynamically expanded
+- Automatically allocated and deallocated when a method is called and returns
+- Faster access compared to heap memory
+- Thread-safe as each thread has its own stack
+
+### Heap Memory
+
+- Created when the JVM starts
+- Stores objects and JRE classes
+- Shared among all threads
+- Not thread-safe
+- Uses garbage collection for memory management
+- Can be divided into generations for more efficient garbage collection
+
+### Differences between Stack and Heap
+
+| Feature | Stack | Heap |
+|---------|-------|------|
+| Memory allocation | Automatic | Manual and Garbage Collection |
+| Deallocation | Automatic | Garbage Collection |
+| Access speed | Faster | Slower |
+| Thread safety | Each thread has its own stack | Shared among all threads |
+| Memory efficiency | More efficient but limited size | Less efficient but larger |
+| Data stored | Method calls, local variables, references | Objects, instance variables, class definitions |
+
+## Garbage Collection Process
+
+### Phases of Garbage Collection
+
+1. **Marking**: Identifies which objects are in use and which are not
+2. **Normal Deletion**: Removes unreferenced objects and leaves referenced objects
+3. **Deletion with Compacting**: For better memory utilization, all surviving objects are moved to one end of the memory region
+
+### Generational Garbage Collection
+
+The JVM uses a generational approach to improve garbage collection performance:
+
+1. **Minor GC**: Collects the Young Generation
+   - Objects are first created in Eden
+   - After a minor GC, surviving objects are moved to the Survivor spaces
+   - After surviving multiple minor GCs, objects are moved to the Old Generation
+
+2. **Major GC**: Collects the Old Generation
+   - Less frequent but typically more time-consuming
+   - Usually causes a "stop-the-world" event where all application threads are paused
+
+3. **Full GC**: Collects both the Young and Old Generations
+
+## JVM Tuning Parameters
+
+The JVM provides many flags and parameters for tuning performance:
+
+### Memory Allocation
+
+- `-Xms`: Initial heap size
+- `-Xmx`: Maximum heap size
+- `-Xss`: Thread stack size
+- `-XX:MetaspaceSize`: Initial metaspace size
+- `-XX:MaxMetaspaceSize`: Maximum metaspace size
+
+### Garbage Collection
+
+- `-XX:+UseSerialGC`: Use Serial GC
+- `-XX:+UseParallelGC`: Use Parallel GC
+- `-XX:+UseConcMarkSweepGC`: Use CMS GC
+- `-XX:+UseG1GC`: Use G1 GC
+- `-XX:+UseZGC`: Use Z GC (Java 11+)
+- `-XX:+UseShenandoahGC`: Use Shenandoah GC (Java 12+)
+
+### GC Logging
+
+- `-verbose:gc`: Enable GC logging
+- `-Xlog:gc*` (Java 9+): More detailed GC logging
+- `-XX:+PrintGCDetails`: Print detailed GC information
+
+## JIT Compilation
+
+### JIT Optimization Techniques
+
+1. **Inlining**: Replaces method calls with the actual method body
+2. **Dead Code Elimination**: Removes unreachable code
+3. **Loop Unrolling**: Reduces loop overhead by executing multiple iterations at once
+4. **Escape Analysis**: Determines if objects can be allocated on the stack instead of the heap
+5. **Lock Elision**: Removes unnecessary synchronization
+
+### JIT Compilation Levels
+
+1. **Level 0**: Interpreted code (no compilation)
+2. **Level 1**: Simple C1 compiler optimizations (client mode)
+3. **Level 2**: Limited C1 compiler optimizations with profiling
+4. **Level 3**: Full C1 compiler optimizations with profiling
+5. **Level 4**: C2 compiler optimizations (server mode)
+
+## Class File Structure
+
+A Java class file contains:
+
+1. **Magic Number**: 0xCAFEBABE
+2. **Version Information**: Minor and major version of the class file
+3. **Constant Pool**: Collection of constants
+4. **Access Flags**: Modifiers of the class
+5. **This Class**: Index into the constant pool for this class
+6. **Super Class**: Index into the constant pool for the superclass
+7. **Interfaces**: Implemented interfaces
+8. **Fields**: Class fields
+9. **Methods**: Class methods
+10. **Attributes**: Additional class information
+
+## JVM Implementations
+
+There are several JVM implementations available:
+
+1. **Oracle's HotSpot JVM**: The most widely used JVM
+2. **Eclipse OpenJ9**: IBM's open-source JVM implementation
+3. **GraalVM**: JVM and JDK with advanced features for polyglot applications
+4. **Amazon Corretto**: AWS's distribution of the OpenJDK
+5. **Azul Zulu**: Azul Systems' build of OpenJDK
+6. **JRockit (legacy)**: Oracle's JVM optimized for server environments
+
+## Conclusion
+
+The JVM is a complex and sophisticated piece of technology that enables Java's "write once, run anywhere" capability. Understanding the JVM architecture is essential for Java developers to write efficient code and effectively tune applications for optimal performance.
+
+The JVM continuously evolves with each new version of Java, introducing new features, improving performance, and addressing limitations. Modern JVMs like HotSpot incorporate advanced optimizations, adaptive compilation techniques, and sophisticated garbage collection algorithms to provide high performance for a wide range of applications.
