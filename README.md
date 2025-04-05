@@ -6974,3 +6974,390 @@ Lists and Sets serve different purposes in the Java Collections Framework:
 - **Sets** provide collections of unique elements with fast lookup operations, making them ideal for membership testing and eliminating duplicates.
 
 Choosing between them depends on your specific requirements regarding element uniqueness, order preservation, access patterns, and performance characteristics. Understanding these differences allows you to select the most appropriate collection type for your application needs.
+
+# ConcurrentHashMap in Java
+
+`ConcurrentHashMap` is a thread-safe implementation of the `Map` interface in Java, designed specifically for concurrent access scenarios. It allows multiple threads to read and write to the map simultaneously without compromising thread safety, making it an essential tool for high-concurrency applications.
+
+## Overview
+
+Introduced in Java 5 as part of the `java.util.concurrent` package, `ConcurrentHashMap` was created to address the performance limitations of traditional synchronized collections like `Hashtable` or `Collections.synchronizedMap(new HashMap())` when used in highly concurrent environments.
+
+```java
+import java.util.concurrent.ConcurrentHashMap;
+
+Map<String, Integer> concurrentMap = new ConcurrentHashMap<>();
+```
+
+## Key Features
+
+### 1. Thread Safety with High Concurrency
+
+`ConcurrentHashMap` achieves thread safety without locking the entire map for each operation:
+
+- In Java 7 and earlier, it used **segment locking** (dividing the map into segments and locking only the relevant segment)
+- In Java 8 and later, it uses a more efficient approach with **node locking** (locking only the affected node during updates)
+
+This design allows multiple threads to read and write simultaneously as long as they're working on different segments or nodes.
+
+### 2. No Locking for Read Operations
+
+Read operations (like `get()`) do not require locking, which significantly improves performance in read-heavy scenarios.
+
+### 3. Atomic Operations
+
+`ConcurrentHashMap` provides atomic compound operations that execute safely in concurrent environments:
+
+```java
+// Atomic put-if-absent
+concurrentMap.putIfAbsent("key", 100);
+
+// Atomic compute
+concurrentMap.compute("key", (k, v) -> v == null ? 42 : v + 10);
+
+// Atomic computeIfPresent
+concurrentMap.computeIfPresent("key", (k, v) -> v + 1);
+
+// Atomic computeIfAbsent
+concurrentMap.computeIfAbsent("key", k -> generateValue(k));
+
+// Atomic replace
+concurrentMap.replace("key", 100, 200);
+```
+
+### 4. Fail-Safe Iteration
+
+Iterators returned by `ConcurrentHashMap` are weakly consistent and fail-safe - they won't throw `ConcurrentModificationException` if the map is modified during iteration:
+
+```java
+ConcurrentHashMap<String, Integer> map = new ConcurrentHashMap<>();
+// Add elements...
+
+// This won't throw ConcurrentModificationException even if other threads
+// modify the map during iteration
+for (Map.Entry<String, Integer> entry : map.entrySet()) {
+    // Process entry
+    // Map can be modified by other threads during this loop
+}
+```
+
+### 5. Null Values and Keys
+
+`ConcurrentHashMap` does not allow null keys or values:
+
+```java
+ConcurrentHashMap<String, Integer> map = new ConcurrentHashMap<>();
+map.put(null, 1);  // Throws NullPointerException
+map.put("key", null);  // Throws NullPointerException
+```
+
+This restriction is by design, as null values would complicate concurrent retrieval operations.
+
+### 6. Bulk Operations (Java 8+)
+
+Java 8 introduced several bulk operations that can process map entries in parallel:
+
+```java
+// Search
+String result = concurrentMap.search(10, (k, v) -> v > 100 ? k : null);
+
+// ForEach
+concurrentMap.forEach(10, (k, v) -> System.out.println(k + "=" + v));
+
+// Reduce
+Integer sum = concurrentMap.reduce(10, 
+    (k, v) -> v, 
+    (v1, v2) -> v1 + v2);
+```
+
+The first parameter (10 in these examples) is the parallelism threshold that determines when parallel execution should be used.
+
+## Performance Characteristics
+
+### Time Complexity
+
+Operation time complexities for `ConcurrentHashMap` are similar to regular `HashMap`:
+- `get()`, `put()`, `remove()`, and `containsKey()`: O(1) average case
+- Iteration: O(capacity + size) where capacity is the table size and size is the number of entries
+
+### Memory Overhead
+
+`ConcurrentHashMap` has slightly higher memory overhead compared to `HashMap` due to its concurrent mechanisms and management structures.
+
+### Scalability
+
+`ConcurrentHashMap` is designed to scale with the number of processors available:
+- Performance improves with more cores when using the parallel operations
+- Contention for locks decreases as the number of segments/nodes increases
+
+## Comparisons with Other Map Implementations
+
+### ConcurrentHashMap vs HashMap
+
+| Feature | ConcurrentHashMap | HashMap |
+|---------|-------------------|---------|
+| Thread Safety | Thread-safe | Not thread-safe |
+| Null Keys/Values | Not allowed | Allowed |
+| Performance in Single-Thread | Slightly slower | Faster |
+| Performance in Multi-Thread | Much better | Poor (requires external synchronization) |
+| Memory Footprint | Higher | Lower |
+| Iterator Behavior | Fail-safe | Fail-fast |
+
+### ConcurrentHashMap vs Hashtable
+
+| Feature | ConcurrentHashMap | Hashtable |
+|---------|-------------------|-----------|
+| Thread Safety Mechanism | Segment/Node locking | Method-level synchronization |
+| Concurrency | High (multiple threads can write) | Low (one writer at a time) |
+| Performance | Better in concurrent access | Worse in concurrent access |
+| Null Keys/Values | Not allowed | Not allowed |
+| API Modernity | Modern (atomic operations) | Legacy |
+
+### ConcurrentHashMap vs Collections.synchronizedMap()
+
+| Feature | ConcurrentHashMap | Collections.synchronizedMap() |
+|---------|-------------------|------------------------------|
+| Thread Safety Mechanism | Fine-grained locking | Object-level synchronization |
+| Concurrency | High | Low (one writer at a time) |
+| Performance in Multi-Thread | Better | Worse |
+| Iterator | No explicit synchronization needed | Requires explicit synchronization |
+
+## Common Use Cases
+
+1. **Caching**: Thread-safe caching of frequently accessed data
+2. **Concurrent Counters**: Tracking statistics in multi-threaded applications
+3. **Shared Dictionaries**: When multiple threads need to access and update shared key-value data
+4. **Session Storage**: Managing user sessions in web applications
+5. **Rate Limiting**: Implementing thread-safe rate limiting or throttling mechanisms
+
+## Code Examples
+
+### Basic Usage
+
+```java
+import java.util.concurrent.ConcurrentHashMap;
+
+public class ConcurrentMapExample {
+    public static void main(String[] args) {
+        ConcurrentHashMap<String, Integer> userScores = new ConcurrentHashMap<>();
+        
+        // Adding elements
+        userScores.put("Alice", 95);
+        userScores.put("Bob", 82);
+        userScores.put("Charlie", 90);
+        
+        // Reading
+        int aliceScore = userScores.get("Alice");
+        System.out.println("Alice's score: " + aliceScore);
+        
+        // Updating atomically
+        userScores.computeIfPresent("Bob", (k, v) -> v + 5);
+        System.out.println("Bob's updated score: " + userScores.get("Bob"));  // 87
+        
+        // Adding only if absent
+        userScores.putIfAbsent("David", 88);
+        
+        // Print all entries
+        userScores.forEach((user, score) -> 
+            System.out.println(user + ": " + score));
+    }
+}
+```
+
+### Concurrent Counter
+
+```java
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+public class ConcurrentCounter {
+    public static void main(String[] args) throws InterruptedException {
+        // Create a map to store counts for different categories
+        ConcurrentHashMap<String, Integer> counters = new ConcurrentHashMap<>();
+        
+        // Initialize categories
+        counters.put("Category A", 0);
+        counters.put("Category B", 0);
+        counters.put("Category C", 0);
+        
+        // Create a thread pool
+        ExecutorService executor = Executors.newFixedThreadPool(10);
+        
+        // Submit 1000 increment tasks
+        for (int i = 0; i < 1000; i++) {
+            executor.submit(() -> {
+                // Randomly select a category to increment
+                String category = "Category " + (char)('A' + (int)(Math.random() * 3));
+                
+                // Atomically increment the counter
+                counters.compute(category, (k, v) -> v + 1);
+            });
+        }
+        
+        // Shutdown the executor and wait for all tasks to complete
+        executor.shutdown();
+        executor.awaitTermination(5, TimeUnit.SECONDS);
+        
+        // Print final counts
+        counters.forEach((category, count) -> 
+            System.out.println(category + ": " + count));
+        
+        // Calculate total
+        int sum = counters.reduceValues(1, Integer::sum);
+        System.out.println("Total count: " + sum);
+    }
+}
+```
+
+### Thread-Safe Cache with Expiration
+
+```java
+import java.util.concurrent.*;
+
+public class SimpleCache<K, V> {
+    private final ConcurrentHashMap<K, V> cache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<K, Long> expiryMap = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService cleanupService = Executors.newSingleThreadScheduledExecutor();
+    private final long defaultExpiryTimeMillis;
+    
+    public SimpleCache(long defaultExpiryTimeMillis) {
+        this.defaultExpiryTimeMillis = defaultExpiryTimeMillis;
+        
+        // Schedule cleanup task
+        cleanupService.scheduleAtFixedRate(
+            this::cleanupExpiredEntries, 
+            defaultExpiryTimeMillis / 2, 
+            defaultExpiryTimeMillis / 2, 
+            TimeUnit.MILLISECONDS
+        );
+    }
+    
+    public V get(K key) {
+        return cache.get(key);
+    }
+    
+    public void put(K key, V value) {
+        cache.put(key, value);
+        expiryMap.put(key, System.currentTimeMillis() + defaultExpiryTimeMillis);
+    }
+    
+    public V computeIfAbsent(K key, Function<K, V> mappingFunction) {
+        V value = cache.computeIfAbsent(key, mappingFunction);
+        expiryMap.putIfAbsent(key, System.currentTimeMillis() + defaultExpiryTimeMillis);
+        return value;
+    }
+    
+    private void cleanupExpiredEntries() {
+        long now = System.currentTimeMillis();
+        
+        expiryMap.forEach((key, expiry) -> {
+            if (expiry <= now) {
+                // Remove from both maps atomically
+                expiryMap.remove(key);
+                cache.remove(key);
+            }
+        });
+    }
+    
+    public void shutdown() {
+        cleanupService.shutdown();
+    }
+}
+```
+
+## Best Practices
+
+### 1. Choose the Appropriate Initial Capacity
+
+Setting an appropriate initial capacity can help avoid resize operations:
+
+```java
+// If you anticipate storing approximately 1000 elements
+Map<String, Data> map = new ConcurrentHashMap<>(1024); // slightly larger than needed
+```
+
+### 2. Use the Atomic Methods for Compound Operations
+
+Prefer atomic operations over check-then-act patterns:
+
+```java
+// Avoid this pattern (non-atomic, potential race condition)
+if (!map.containsKey("key")) {
+    map.put("key", "value");
+}
+
+// Use this instead (atomic)
+map.putIfAbsent("key", "value");
+```
+
+### 3. Take Advantage of Java 8 Functions
+
+Use the functional operations for complex logic:
+
+```java
+// Update value atomically based on old value
+map.compute("counter", (k, v) -> (v == null) ? 1 : v + 1);
+
+// Only update if key exists
+map.computeIfPresent("counter", (k, v) -> v + 1);
+
+// Only insert if key is missing
+map.computeIfAbsent("counter", k -> 1);
+```
+
+### 4. Be Aware of Weakly Consistent Iterators
+
+ConcurrentHashMap's iterators are weakly consistent:
+- They reflect the state of the map at some point after the iterator was created
+- They may or may not show modifications made to the map after the iterator was created
+- Multiple iterations might see different states
+
+### 5. Consider Using KeySetView for Sets
+
+If you need a thread-safe Set, use the `keySet` or `newKeySet` methods:
+
+```java
+// Thread-safe Set implementation
+Set<String> concurrentSet = ConcurrentHashMap.newKeySet();
+```
+
+### 6. Use forEachKey/Value/Entry for Concurrent Processing
+
+Take advantage of parallel processing capabilities:
+
+```java
+// Process entries in parallel when possible
+map.forEach(100, (k, v) -> process(k, v));
+```
+
+## Limitations and Considerations
+
+1. **No Lock Guarantees**: ConcurrentHashMap does not lock the entire map during iteration, which means elements might change during traversal.
+
+2. **Limited Atomicity Scope**: Atomic operations only apply to individual methods, not sequences of methods.
+
+3. **No Ordering Guarantees**: Similar to HashMap, ConcurrentHashMap does not guarantee the order of iteration.
+
+4. **Aggregate Operations**: Methods like `size()` and `isEmpty()` return an approximation if the map is being concurrently updated.
+
+5. **Memory Overhead**: There is a memory penalty for the concurrency control mechanisms.
+
+## Performance Tips
+
+1. **Minimize Contention**: Design your application to distribute keys evenly across the map to reduce lock contention.
+
+2. **Batch Updates**: If possible, batch updates to reduce the overhead of concurrent operations.
+
+3. **Avoid Resizing**: Initialize with an appropriate capacity to avoid dynamic resizing.
+
+4. **Read-Heavy Workloads**: ConcurrentHashMap excels in read-heavy scenarios with occasional updates.
+
+5. **Proper Sizing**: For best performance, size the map according to expected capacity.
+
+## Conclusion
+
+`ConcurrentHashMap` is a powerful tool for building high-performance concurrent applications in Java. It provides an excellent balance of thread safety and performance for scenarios requiring shared access to key-value data. By understanding its features, limitations, and best practices, developers can effectively utilize this collection to build scalable, thread-safe applications without sacrificing performance.
+
+Whether you're implementing caches, counters, or any other shared data structure in a multi-threaded environment, `ConcurrentHashMap` should be your go-to solution when thread safety and high performance are required.
