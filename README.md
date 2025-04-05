@@ -447,4 +447,213 @@ When all five SOLID principles are applied together, they lead to systems that a
 4. **Extensible** - new functionality can be added without modifying existing code
 5. **Reusable** - components can be reused in different contexts
 
-In a senior Java role, you'll be expected not only to understand these principles but to actively apply them when designing systems and reviewing code.
+
+# Static vs Dynamic Polymorphism in Java
+
+Polymorphism is one of the four pillars of object-oriented programming (along with encapsulation, inheritance, and abstraction). In Java, polymorphism comes in two distinct forms: static (compile-time) polymorphism and dynamic (runtime) polymorphism. Understanding the differences between these two is crucial for senior Java developers.
+
+## Static Polymorphism (Compile-Time Polymorphism)
+
+### Definition
+Static polymorphism is resolved during compile time. The compiler determines which method to call based on the method signature and the number and types of arguments.
+
+### Implemented Through
+- Method overloading
+- Operator overloading (limited in Java compared to C++)
+
+### Key Characteristics
+- Determined at compile time
+- Based on reference type
+- More efficient as binding happens early
+- Uses method signatures to determine which method to call
+
+### Example: Method Overloading
+
+```java
+public class Calculator {
+    // Method with two int parameters
+    public int add(int a, int b) {
+        System.out.println("Method with two parameters called");
+        return a + b;
+    }
+    
+    // Method with three int parameters
+    public int add(int a, int b, int c) {
+        System.out.println("Method with three parameters called");
+        return a + b + c;
+    }
+    
+    // Method with two double parameters
+    public double add(double a, double b) {
+        System.out.println("Method with double parameters called");
+        return a + b;
+    }
+    
+    public static void main(String[] args) {
+        Calculator calc = new Calculator();
+        
+        // Calls the first method
+        System.out.println(calc.add(5, 10));
+        
+        // Calls the second method
+        System.out.println(calc.add(5, 10, 15));
+        
+        // Calls the third method
+        System.out.println(calc.add(5.5, 10.5));
+    }
+}
+```
+
+### How It Works
+1. The compiler looks at the method signature (name and parameter types)
+2. It matches the call to the appropriate method definition
+3. If there's ambiguity, it follows a set of type promotion rules
+4. The binding of method call to method definition happens at compile time
+
+## Dynamic Polymorphism (Runtime Polymorphism)
+
+### Definition
+Dynamic polymorphism is resolved during runtime. The JVM determines which method to call based on the actual object type, not the reference type.
+
+### Implemented Through
+- Method overriding
+- Interface implementation
+
+### Key Characteristics
+- Determined at runtime
+- Based on object type (not reference type)
+- Slightly less efficient due to runtime resolution
+- Uses inheritance and interface relationships
+- Enables more flexible and extensible code
+
+### Example: Method Overriding
+
+```java
+// Parent class
+class Animal {
+    public void makeSound() {
+        System.out.println("Animal makes a sound");
+    }
+}
+
+// Child class
+class Dog extends Animal {
+    @Override
+    public void makeSound() {
+        System.out.println("Dog barks");
+    }
+}
+
+// Another child class
+class Cat extends Animal {
+    @Override
+    public void makeSound() {
+        System.out.println("Cat meows");
+    }
+}
+
+// Usage
+public class Main {
+    public static void main(String[] args) {
+        // Reference type is Animal, object type is Dog
+        Animal animal1 = new Dog();
+        
+        // Reference type is Animal, object type is Cat
+        Animal animal2 = new Cat();
+        
+        animal1.makeSound(); // Outputs: "Dog barks"
+        animal2.makeSound(); // Outputs: "Cat meows"
+    }
+}
+```
+
+### How It Works
+1. The reference type (`Animal` in this case) determines which methods are accessible
+2. At runtime, the JVM looks at the actual object type (`Dog` or `Cat`)
+3. It calls the most specific implementation of the method for that object type
+4. This dynamic binding happens through a mechanism called "virtual method invocation"
+
+## Example with Interfaces
+
+```java
+interface Drawable {
+    void draw();
+}
+
+class Circle implements Drawable {
+    @Override
+    public void draw() {
+        System.out.println("Drawing a circle");
+    }
+}
+
+class Rectangle implements Drawable {
+    @Override
+    public void draw() {
+        System.out.println("Drawing a rectangle");
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Drawable shape1 = new Circle();
+        Drawable shape2 = new Rectangle();
+        
+        shape1.draw(); // Outputs: "Drawing a circle"
+        shape2.draw(); // Outputs: "Drawing a rectangle"
+    }
+}
+```
+
+## Key Differences
+
+| Feature | Static Polymorphism | Dynamic Polymorphism |
+|---------|---------------------|----------------------|
+| Resolution Time | Compile time | Runtime |
+| Implementation | Method overloading | Method overriding |
+| Binding | Early binding | Late binding |
+| Performance | More efficient | Slightly less efficient |
+| Flexibility | Less flexible | More flexible |
+| Called via | Reference type | Object type |
+| Method selection based on | Method signature and argument types | Actual object type |
+
+## When to Use Each
+
+### Use Static Polymorphism When:
+- You need different ways to perform the same operation based on different input types
+- Performance is critical
+- The behavior doesn't need to change based on object inheritance
+- You need to perform similar operations with different parameters
+
+### Use Dynamic Polymorphism When:
+- You want to implement the "one interface, multiple implementations" pattern
+- You need to extend functionality through inheritance
+- You need to write code that works with objects whose exact type isn't known in advance
+- You want to achieve loose coupling between components
+
+## Interview Tips
+
+When discussing polymorphism in an interview:
+
+1. **Be specific about terminology**: Clearly distinguish between static/compile-time and dynamic/runtime polymorphism
+   
+2. **Explain the advantages**:
+   - Static: Performance, clarity for method resolution
+   - Dynamic: Flexibility, extensibility, support for design patterns
+
+3. **Discuss real-world applications**:
+   - Framework design often relies heavily on dynamic polymorphism
+   - APIs frequently use method overloading for convenience
+   
+4. **Mention possible gotchas**:
+   - Method hiding (static methods can't be overridden, only hidden)
+   - Covariant return types
+   - The impact of autoboxing on method overloading resolution
+   
+5. **Connect to design principles**:
+   - Dynamic polymorphism enables the Open/Closed Principle
+   - Polymorphism is key to implementing the Strategy and Template Method patterns
+
+6. **Discuss performance implications**:
+   - The JVM's optimization techniques (JIT, inlining) often minimize the performance difference
+   - Virtual method tables and how the JVM implements dynamic dispatch
