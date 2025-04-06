@@ -7829,3 +7829,1059 @@ public class StreamExample {
    ```
 
 Higher-order functions in Java enable a more functional programming style, leading to more concise, maintainable, and flexible code structures.
+
+# Microservice Patterns in Java
+
+Microservices architecture has become the standard approach for building scalable, resilient, and maintainable enterprise applications. This document explores the key microservice patterns and their implementation in Java, along with frameworks and libraries that support these patterns.
+
+## Core Microservice Patterns
+
+### 1. Service Decomposition Pattern
+
+This pattern focuses on breaking down a monolithic application into smaller, loosely coupled services based on business capabilities.
+
+**Implementation in Java:**
+- Use Domain-Driven Design (DDD) principles to identify bounded contexts
+- Each microservice manages its own data and business logic
+- Services communicate via well-defined APIs
+
+```java
+// Example of a focused microservice for order management
+@SpringBootApplication
+public class OrderServiceApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(OrderServiceApplication.class, args);
+    }
+}
+
+@RestController
+@RequestMapping("/orders")
+public class OrderController {
+    @Autowired
+    private OrderService orderService;
+    
+    @PostMapping
+    public ResponseEntity<Order> createOrder(@RequestBody Order order) {
+        return ResponseEntity.ok(orderService.createOrder(order));
+    }
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<Order> getOrder(@PathVariable Long id) {
+        return orderService.findById(id)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+}
+```
+
+### 2. API Gateway Pattern
+
+An API Gateway serves as a single entry point for client applications, routing requests to appropriate microservices.
+
+**Implementation in Java:**
+- Spring Cloud Gateway
+- Netflix Zuul
+- Apache APISIX
+
+```java
+// Spring Cloud Gateway configuration
+@SpringBootApplication
+@EnableDiscoveryClient
+public class ApiGatewayApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(ApiGatewayApplication.class, args);
+    }
+}
+
+// In application.yml
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: order-service
+          uri: lb://order-service
+          predicates:
+            - Path=/api/orders/**
+          filters:
+            - StripPrefix=1
+        - id: user-service
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - StripPrefix=1
+```
+
+### 3. Service Discovery Pattern
+
+Enables microservices to discover and communicate with each other without hardcoding locations.
+
+**Implementation in Java:**
+- Netflix Eureka
+- Consul
+- Kubernetes Service Discovery
+
+```java
+// Service registry with Eureka
+@SpringBootApplication
+@EnableEurekaServer
+public class ServiceRegistryApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(ServiceRegistryApplication.class, args);
+    }
+}
+
+// Client service registration
+@SpringBootApplication
+@EnableDiscoveryClient
+public class OrderServiceApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(OrderServiceApplication.class, args);
+    }
+}
+```
+
+### 4. Circuit Breaker Pattern
+
+Prevents cascading failures by failing fast and providing fallback behavior when a service is unavailable.
+
+**Implementation in Java:**
+- Resilience4j
+- Netflix Hystrix (legacy, now in maintenance mode)
+- Spring Cloud Circuit Breaker
+
+```java
+// Using Resilience4j
+@Service
+public class ProductService {
+    private final RestTemplate restTemplate;
+    
+    public ProductService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+    
+    @CircuitBreaker(name = "productService", fallbackMethod = "getDefaultProductInfo")
+    public ProductInfo getProductInfo(Long productId) {
+        return restTemplate.getForObject(
+            "http://product-service/products/" + productId,
+            ProductInfo.class
+        );
+    }
+    
+    public ProductInfo getDefaultProductInfo(Long productId, Exception e) {
+        return new ProductInfo(productId, "Fallback Product", "No description available", 0.0);
+    }
+}
+```
+
+### 5. Configuration Server Pattern
+
+Centralizes configuration management for all microservices in an application.
+
+**Implementation in Java:**
+- Spring Cloud Config Server
+- Apache ZooKeeper
+- Consul Key/Value Store
+
+```java
+// Config Server
+@SpringBootApplication
+@EnableConfigServer
+public class ConfigServerApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(ConfigServerApplication.class, args);
+    }
+}
+
+// Client configuration
+@SpringBootApplication
+@EnableDiscoveryClient
+public class OrderServiceApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(OrderServiceApplication.class, args);
+    }
+}
+
+// bootstrap.yml in client
+spring:
+  application:
+    name: order-service
+  cloud:
+    config:
+      uri: http://config-server:8888
+      fail-fast: true
+```
+
+### 6. Distributed Tracing Pattern
+
+Traces requests as they flow through multiple microservices to help debug and monitor distributed systems.
+
+**Implementation in Java:**
+- Spring Cloud Sleuth with Zipkin
+- Jaeger
+- OpenTelemetry
+
+```java
+// Add dependencies for Spring Cloud Sleuth and Zipkin
+// In application.properties or application.yml
+spring.application.name=order-service
+spring.zipkin.base-url=http://zipkin-server:9411
+spring.sleuth.sampler.probability=1.0
+
+// The tracing is then automatically applied to requests
+@Service
+public class OrderService {
+    private final RestTemplate restTemplate;
+    
+    public OrderService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+    
+    public Order processOrder(Order order) {
+        // Trace context is automatically propagated
+        PaymentResult result = restTemplate.postForObject(
+            "http://payment-service/payments",
+            new PaymentRequest(order.getId(), order.getAmount()),
+            PaymentResult.class
+        );
+        
+        order.setPaymentStatus(result.getStatus());
+        return orderRepository.save(order);
+    }
+}
+```
+
+### 7. Event Sourcing Pattern
+
+Instead of storing current state, capture all changes to an application state as a sequence of events.
+
+**Implementation in Java:**
+- Axon Framework
+- Event Store
+- Kafka with custom event sourcing implementation
+
+```java
+// Using Axon Framework
+@Aggregate
+public class OrderAggregate {
+    @AggregateIdentifier
+    private String orderId;
+    private OrderStatus status;
+    
+    @CommandHandler
+    public OrderAggregate(CreateOrderCommand command) {
+        apply(new OrderCreatedEvent(command.getOrderId(), command.getItems()));
+    }
+    
+    @CommandHandler
+    public void handle(ConfirmOrderCommand command) {
+        apply(new OrderConfirmedEvent(orderId));
+    }
+    
+    @EventSourcingHandler
+    public void on(OrderCreatedEvent event) {
+        this.orderId = event.getOrderId();
+        this.status = OrderStatus.CREATED;
+    }
+    
+    @EventSourcingHandler
+    public void on(OrderConfirmedEvent event) {
+        this.status = OrderStatus.CONFIRMED;
+    }
+}
+```
+
+### 8. CQRS (Command Query Responsibility Segregation)
+
+Separates read and write operations into different models.
+
+**Implementation in Java:**
+- Axon Framework
+- Spring Data with custom CQRS implementation
+- Apache Kafka with event sourcing
+
+```java
+// Command side
+@RestController
+@RequestMapping("/orders")
+public class OrderCommandController {
+    private final CommandGateway commandGateway;
+    
+    public OrderCommandController(CommandGateway commandGateway) {
+        this.commandGateway = commandGateway;
+    }
+    
+    @PostMapping
+    public CompletableFuture<String> createOrder(@RequestBody OrderRequest request) {
+        return commandGateway.send(new CreateOrderCommand(
+            UUID.randomUUID().toString(),
+            request.getItems()
+        ));
+    }
+}
+
+// Query side
+@RestController
+@RequestMapping("/orders")
+public class OrderQueryController {
+    private final OrderRepository orderRepository;
+    
+    public OrderQueryController(OrderRepository orderRepository) {
+        this.orderRepository = orderRepository;
+    }
+    
+    @GetMapping
+    public List<OrderSummary> getAllOrders() {
+        return orderRepository.findAll();
+    }
+    
+    @GetMapping("/{orderId}")
+    public OrderDetails getOrder(@PathVariable String orderId) {
+        return orderRepository.findByOrderId(orderId)
+            .orElseThrow(() -> new OrderNotFoundException(orderId));
+    }
+}
+```
+
+### 9. Saga Pattern
+
+Manages distributed transactions across multiple microservices.
+
+**Implementation in Java:**
+- Axon Framework
+- Eventuate Tram Saga
+- Custom implementation using Spring State Machine
+
+```java
+// Using Eventuate Tram Saga
+public class CreateOrderSaga implements SimpleSaga<CreateOrderSagaData> {
+    private final OrderService orderService;
+    private final CustomerService customerService;
+    private final PaymentService paymentService;
+    
+    @SagaCommandHandler
+    public CommandWithDestination reserveCredit(CreateOrderSagaData data) {
+        return send(new ReserveCreditCommand(data.getCustomerId(), data.getOrderTotal()))
+            .to("customerService")
+            .build();
+    }
+    
+    @SagaCommandHandler
+    public CommandWithDestination processPayment(CreateOrderSagaData data) {
+        return send(new ProcessPaymentCommand(data.getPaymentDetails(), data.getOrderTotal()))
+            .to("paymentService")
+            .build();
+    }
+    
+    @SagaCommandHandler
+    public CommandWithDestination approveOrder(CreateOrderSagaData data) {
+        return send(new ApproveOrderCommand(data.getOrderId()))
+            .to("orderService")
+            .build();
+    }
+    
+    // Compensation methods for rollback
+    @SagaCommandHandler
+    public CommandWithDestination releaseCredit(CreateOrderSagaData data) {
+        return send(new ReleaseCreditCommand(data.getCustomerId(), data.getOrderTotal()))
+            .to("customerService")
+            .build();
+    }
+}
+```
+
+### 10. Backend for Frontend (BFF) Pattern
+
+Creates dedicated backend services tailored to specific frontend client needs.
+
+**Implementation in Java:**
+- Spring Boot with client-specific controllers
+- GraphQL for flexible data fetching
+- Netflix Zuul with custom filters
+
+```java
+// Mobile BFF example
+@SpringBootApplication
+public class MobileBffApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(MobileBffApplication.class, args);
+    }
+}
+
+@RestController
+@RequestMapping("/mobile/dashboard")
+public class MobileDashboardController {
+    private final ProductService productService;
+    private final OrderService orderService;
+    private final UserService userService;
+    
+    // Constructor injection
+    
+    @GetMapping
+    public MobileDashboardData getDashboard(@RequestParam String userId) {
+        // Aggregate data from multiple services in a mobile-optimized format
+        UserProfile user = userService.getUserProfile(userId);
+        List<RecentOrder> recentOrders = orderService.getRecentOrders(userId, 5);
+        List<ProductRecommendation> recommendations = 
+            productService.getRecommendations(userId, 10);
+        
+        return new MobileDashboardData(user, recentOrders, recommendations);
+    }
+}
+```
+
+## Infrastructure Patterns
+
+### 1. Service Mesh Pattern
+
+Uses a dedicated infrastructure layer for handling service-to-service communication.
+
+**Implementation in Java:**
+- Istio
+- Linkerd
+- Consul Connect
+
+```java
+// With a service mesh, the implementation is typically transparent to the application
+// You simply develop your microservices as usual
+
+@SpringBootApplication
+public class ProductServiceApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(ProductServiceApplication.class, args);
+    }
+}
+
+// The service mesh handles:
+// - Service discovery
+// - Load balancing
+// - Circuit breaking
+// - Authentication and authorization
+// - Metrics collection
+```
+
+### 2. Sidecar Pattern
+
+Deploys helper components as separate containers alongside the primary application container.
+
+**Implementation in Java:**
+- Spring Cloud Config with config sidecar
+- Log collection sidecars with Fluentd
+- Envoy as an application proxy
+
+```java
+// The main application focuses on business logic
+@SpringBootApplication
+public class OrderServiceApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(OrderServiceApplication.class, args);
+    }
+}
+
+// Configuration in Kubernetes Deployment YAML
+// apiVersion: apps/v1
+// kind: Deployment
+// metadata:
+//   name: order-service
+// spec:
+//   template:
+//     spec:
+//       containers:
+//       - name: order-service
+//         image: my-company/order-service:latest
+//       - name: logging-sidecar
+//         image: fluent/fluentd:latest
+//         volumeMounts:
+//         - name: shared-logs
+//           mountPath: /logs
+//       volumes:
+//       - name: shared-logs
+//         emptyDir: {}
+```
+
+## Data Patterns
+
+### 1. Database per Service Pattern
+
+Each microservice has its own database, completely separated from other services.
+
+**Implementation in Java:**
+- Spring Data with service-specific database configuration
+- Multiple database instances with different technologies as needed
+- Separate schemas per service
+
+```java
+// Order Service with its own database configuration
+@SpringBootApplication
+public class OrderServiceApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(OrderServiceApplication.class, args);
+    }
+}
+
+// In application.properties
+spring.datasource.url=jdbc:postgresql://order-db:5432/orderdb
+spring.datasource.username=orderservice
+spring.datasource.password=password
+spring.jpa.hibernate.ddl-auto=update
+```
+
+### 2. API Composition Pattern
+
+Retrieves data from multiple services and combines the results.
+
+**Implementation in Java:**
+- Spring WebClient for reactive API composition
+- CompletableFuture for asynchronous composition
+- RestTemplate for simpler scenarios
+
+```java
+@Service
+public class OrderDetailsService {
+    private final WebClient.Builder webClientBuilder;
+    
+    public OrderDetailsService(WebClient.Builder webClientBuilder) {
+        this.webClientBuilder = webClientBuilder;
+    }
+    
+    public Mono<OrderDetails> getOrderDetails(String orderId) {
+        Mono<Order> orderMono = webClientBuilder.build()
+            .get()
+            .uri("http://order-service/orders/{id}", orderId)
+            .retrieve()
+            .bodyToMono(Order.class);
+            
+        Mono<Customer> customerMono = orderMono
+            .flatMap(order -> webClientBuilder.build()
+                .get()
+                .uri("http://customer-service/customers/{id}", order.getCustomerId())
+                .retrieve()
+                .bodyToMono(Customer.class));
+                
+        Mono<List<OrderItem>> itemsMono = webClientBuilder.build()
+            .get()
+            .uri("http://order-item-service/items/order/{orderId}", orderId)
+            .retrieve()
+            .bodyToFlux(OrderItem.class)
+            .collectList();
+            
+        return Mono.zip(orderMono, customerMono, itemsMono)
+            .map(tuple -> new OrderDetails(
+                tuple.getT1(), 
+                tuple.getT2(), 
+                tuple.getT3()
+            ));
+    }
+}
+```
+
+### 3. CQRS with Event Sourcing
+
+Combines CQRS with event sourcing to maintain separate read and write models.
+
+**Implementation in Java:**
+- Axon Framework
+- Spring Cloud Stream with Kafka/RabbitMQ
+- Custom implementation with event stores
+
+```java
+// Command side with Event Sourcing
+@Aggregate
+public class OrderAggregate {
+    @AggregateIdentifier
+    private String orderId;
+    private OrderStatus status;
+    
+    @CommandHandler
+    public OrderAggregate(CreateOrderCommand command) {
+        apply(new OrderCreatedEvent(command.getOrderId(), command.getItems()));
+    }
+    
+    @EventSourcingHandler
+    public void on(OrderCreatedEvent event) {
+        this.orderId = event.getOrderId();
+        this.status = OrderStatus.CREATED;
+    }
+}
+
+// Query side with projections
+@Component
+public class OrderProjection {
+    private final OrderRepository orderRepository;
+    
+    @EventHandler
+    public void on(OrderCreatedEvent event) {
+        OrderEntity order = new OrderEntity();
+        order.setOrderId(event.getOrderId());
+        order.setStatus(OrderStatus.CREATED);
+        order.setItems(event.getItems());
+        orderRepository.save(order);
+    }
+    
+    @EventHandler
+    public void on(OrderConfirmedEvent event) {
+        orderRepository.findByOrderId(event.getOrderId())
+            .ifPresent(order -> {
+                order.setStatus(OrderStatus.CONFIRMED);
+                orderRepository.save(order);
+            });
+    }
+}
+```
+
+## Communication Patterns
+
+### 1. Synchronous Communication Pattern
+
+Services communicate directly via HTTP/REST or gRPC.
+
+**Implementation in Java:**
+- Spring RestTemplate or WebClient
+- OpenFeign
+- gRPC-Java
+
+```java
+// Using OpenFeign for declarative REST clients
+@SpringBootApplication
+@EnableFeignClients
+public class OrderServiceApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(OrderServiceApplication.class, args);
+    }
+}
+
+@FeignClient(name = "payment-service")
+public interface PaymentServiceClient {
+    @PostMapping("/payments")
+    PaymentResult processPayment(@RequestBody PaymentRequest paymentRequest);
+    
+    @GetMapping("/payments/{paymentId}")
+    PaymentDetails getPaymentDetails(@PathVariable String paymentId);
+}
+
+@Service
+public class OrderService {
+    private final PaymentServiceClient paymentServiceClient;
+    
+    // Constructor injection
+    
+    public Order createOrder(Order order) {
+        // Process order...
+        PaymentResult result = paymentServiceClient.processPayment(
+            new PaymentRequest(order.getId(), order.getAmount())
+        );
+        
+        order.setPaymentStatus(result.getStatus());
+        return orderRepository.save(order);
+    }
+}
+```
+
+### 2. Asynchronous Messaging Pattern
+
+Services communicate through message brokers, making them more decoupled.
+
+**Implementation in Java:**
+- Spring Cloud Stream
+- Apache Kafka
+- RabbitMQ
+- Apache Pulsar
+
+```java
+// Producer with Spring Cloud Stream and Kafka
+@SpringBootApplication
+public class OrderServiceApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(OrderServiceApplication.class, args);
+    }
+    
+    @Bean
+    public Function<Order, OrderCreatedEvent> processOrder() {
+        return order -> new OrderCreatedEvent(order.getId(), order.getCustomerId());
+    }
+}
+
+// In application.yml
+spring:
+  cloud:
+    stream:
+      bindings:
+        processOrder-in-0:
+          destination: orders
+        processOrder-out-0:
+          destination: order-events
+
+// Consumer
+@SpringBootApplication
+public class NotificationServiceApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(NotificationServiceApplication.class, args);
+    }
+    
+    @Bean
+    public Consumer<OrderCreatedEvent> handleOrderCreated() {
+        return event -> {
+            // Process the event and send notification
+            System.out.println("Sending notification for order: " + event.getOrderId());
+        };
+    }
+}
+
+// In application.yml
+spring:
+  cloud:
+    stream:
+      bindings:
+        handleOrderCreated-in-0:
+          destination: order-events
+```
+
+### 3. API Gateway with BFF Pattern
+
+Combines API Gateway with Backend for Frontend to create dedicated entry points for different clients.
+
+**Implementation in Java:**
+- Spring Cloud Gateway with custom routes
+- Netflix Zuul with custom filters
+- GraphQL Java for flexible data fetching
+
+```java
+// GraphQL BFF example
+@SpringBootApplication
+public class WebBffApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(WebBffApplication.class, args);
+    }
+}
+
+// Schema.graphqls
+// type Query {
+//   order(id: ID!): Order
+//   customerOrders(customerId: ID!): [Order]
+// }
+// 
+// type Order {
+//   id: ID!
+//   customer: Customer
+//   items: [OrderItem]
+//   status: String
+//   totalAmount: Float
+// }
+
+@Component
+public class OrderResolver implements GraphQLQueryResolver {
+    private final OrderService orderService;
+    private final CustomerService customerService;
+    
+    // Constructor injection
+    
+    public Order order(String id) {
+        return orderService.getOrder(id);
+    }
+    
+    public List<Order> customerOrders(String customerId) {
+        return orderService.getOrdersByCustomerId(customerId);
+    }
+}
+
+@Component
+public class OrderFieldResolver implements GraphQLResolver<Order> {
+    private final CustomerService customerService;
+    private final OrderItemService orderItemService;
+    
+    // Constructor injection
+    
+    public Customer customer(Order order) {
+        return customerService.getCustomer(order.getCustomerId());
+    }
+    
+    public List<OrderItem> items(Order order) {
+        return orderItemService.getItemsByOrderId(order.getId());
+    }
+}
+```
+
+## Deployment Patterns
+
+### 1. Single Service per Container/Pod
+
+Each service is packaged and deployed in its own container/pod.
+
+**Implementation in Java:**
+- Docker containers with Spring Boot applications
+- Kubernetes deployments
+- Buildpacks for container creation
+
+```java
+// Containerize with Dockerfile
+// FROM openjdk:11-jre-slim
+// ARG JAR_FILE=target/*.jar
+// COPY ${JAR_FILE} app.jar
+// ENTRYPOINT ["java", "-jar", "/app.jar"]
+
+// Kubernetes deployment
+// apiVersion: apps/v1
+// kind: Deployment
+// metadata:
+//   name: order-service
+// spec:
+//   replicas: 3
+//   selector:
+//     matchLabels:
+//       app: order-service
+//   template:
+//     metadata:
+//       labels:
+//         app: order-service
+//     spec:
+//       containers:
+//       - name: order-service
+//         image: my-company/order-service:latest
+//         ports:
+//         - containerPort: 8080
+//         env:
+//         - name: SPRING_PROFILES_ACTIVE
+//           value: prod
+```
+
+### 2. Serverless Pattern
+
+Deploy microservices as functions that scale automatically based on demand.
+
+**Implementation in Java:**
+- AWS Lambda with Java
+- Azure Functions
+- Google Cloud Functions
+- Spring Cloud Function
+
+```java
+// Spring Cloud Function
+@SpringBootApplication
+public class OrderProcessorApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(OrderProcessorApplication.class, args);
+    }
+    
+    @Bean
+    public Function<OrderEvent, OrderResult> processOrder() {
+        return event -> {
+            // Process the order
+            System.out.println("Processing order: " + event.getOrderId());
+            
+            // Return result
+            return new OrderResult(event.getOrderId(), "PROCESSED");
+        };
+    }
+}
+
+// AWS Lambda with Spring Cloud Function adapter
+public class OrderLambdaHandler extends SpringBootRequestHandler<OrderEvent, OrderResult> {
+    // AWS Lambda will invoke this handler
+}
+```
+
+## Security Patterns
+
+### 1. Centralized Authentication and Authorization
+
+Implements authentication and authorization as a separate service.
+
+**Implementation in Java:**
+- Spring Security OAuth2
+- Keycloak
+- Auth0
+
+```java
+// Authorization Server with Spring Security OAuth2
+@SpringBootApplication
+@EnableAuthorizationServer
+public class AuthServerApplication extends AuthorizationServerConfigurerAdapter {
+    // Configuration for Authorization Server
+}
+
+// Resource Server (Microservice)
+@SpringBootApplication
+@EnableResourceServer
+public class OrderServiceApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(OrderServiceApplication.class, args);
+    }
+}
+
+// Securing endpoints
+@RestController
+@RequestMapping("/orders")
+public class OrderController {
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<Order> getOrder(@PathVariable Long id) {
+        // ...
+    }
+    
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Order> createOrder(@RequestBody Order order) {
+        // ...
+    }
+}
+```
+
+### 2. API Gateway Security
+
+Implements security at the API Gateway level.
+
+**Implementation in Java:**
+- Spring Cloud Gateway with security filters
+- OAuth2 Resource Server at the gateway
+- JWT token validation
+
+```java
+// Security configuration for API Gateway
+@Configuration
+@EnableWebFluxSecurity
+public class SecurityConfig {
+    @Bean
+    public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
+        return http
+            .authorizeExchange()
+            .pathMatchers("/api/public/**").permitAll()
+            .pathMatchers("/api/admin/**").hasRole("ADMIN")
+            .anyExchange().authenticated()
+            .and()
+            .oauth2ResourceServer()
+            .jwt()
+            .and()
+            .and()
+            .build();
+    }
+}
+```
+
+## Monitoring and Observability Patterns
+
+### 1. Health Check Pattern
+
+Provides endpoints for monitoring systems to check the health of services.
+
+**Implementation in Java:**
+- Spring Boot Actuator
+- Micrometer
+- Custom health indicators
+
+```java
+// Spring Boot Actuator for health checks
+// In application.properties
+management.endpoints.web.exposure.include=health,info,metrics
+management.endpoint.health.show-details=always
+
+// Custom Health Indicator
+@Component
+public class DatabaseHealthIndicator implements HealthIndicator {
+    private final DataSource dataSource;
+    
+    public DatabaseHealthIndicator(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+    
+    @Override
+    public Health health() {
+        try (Connection conn = dataSource.getConnection()) {
+            PreparedStatement ps = conn.prepareStatement("SELECT 1");
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return Health.up().build();
+            }
+            return Health.down().withDetail("error", "Database connectivity check failed").build();
+        } catch (SQLException e) {
+            return Health.down(e).build();
+        }
+    }
+}
+```
+
+### 2. Log Aggregation Pattern
+
+Centralizes logs from multiple microservices for analysis.
+
+**Implementation in Java:**
+- ELK Stack (Elasticsearch, Logstash, Kibana)
+- Fluentd
+- Graylog
+- Logback/Log4j2 with appropriate appenders
+
+```java
+// Logback configuration
+// <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+//     <destination>logstash:5000</destination>
+//     <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+//         <includeMdc>true</includeMdc>
+//         <customFields>{"app_name":"order-service","environment":"production"}</customFields>
+//     </encoder>
+// </appender>
+
+// Adding trace IDs to logs with Sleuth
+@Service
+public class OrderService {
+    private static final Logger logger = LoggerFactory.getLogger(OrderService.class);
+    
+    public Order processOrder(Order order) {
+        logger.info("Processing order: {}", order.getId());
+        // Sleuth automatically adds trace IDs to the logs
+        
+        // Process order...
+        logger.info("Order processed successfully");
+        return order;
+    }
+}
+```
+
+### 3. Distributed Tracing Pattern
+
+Traces requests as they flow through various microservices.
+
+**Implementation in Java:**
+- Spring Cloud Sleuth with Zipkin
+- Jaeger
+- OpenTelemetry
+
+```java
+// Spring Cloud Sleuth with Zipkin
+// In application.properties
+spring.application.name=order-service
+spring.zipkin.base-url=http://zipkin:9411
+spring.sleuth.sampler.probability=1.0
+
+// Trace IDs are automatically propagated between services
+@Service
+public class OrderService {
+    private final RestTemplate restTemplate;
+    
+    // Constructor injection
+    
+    public Order createOrder(Order order) {
+        // The trace context is automatically propagated
+        PaymentResponse response = restTemplate.postForObject(
+            "http://payment-service/payments",
+            new PaymentRequest(order.getId(), order.getAmount()),
+            PaymentResponse.class
+        );
+        
+        // Process response...
+        return order;
+    }
+}
+```
+
+## Conclusion
+
+Microservices patterns provide proven solutions to common challenges in distributed systems. Java's rich ecosystem of frameworks and libraries makes it particularly well-suited for implementing these patterns. By understanding and properly applying these patterns, developers can build resilient, scalable, and maintainable microservices architectures.
+
+When designing a microservices architecture in Java, it's essential to:
+
+1. Choose the right patterns for your specific business and technical requirements
+2. Consider the trade-offs between different patterns
+3. Start simple and evolve your architecture over time
+4. Leverage the rich Java ecosystem of frameworks and libraries
+5. Focus on observability and operability from the beginning
+
+The patterns described in this document provide a foundation for building successful microservices architectures with Java. As your system evolves, you may need to adapt and combine these patterns to meet your specific needs.
