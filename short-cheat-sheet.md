@@ -31,3 +31,17 @@
 | Map | Low | Medium | Medium | Dynamic sets of named values |
 | Output Parameters | Medium | Medium | Low | Performance-critical code |
 | Library Classes | Medium | Low | High | Quick solutions without custom classes |
+
+# Static vs Dynamic Polymorphism in Java
+
+## Key Differences
+
+| Feature | Static Polymorphism | Dynamic Polymorphism |
+|---------|---------------------|----------------------|
+| Resolution Time | Compile time | Runtime |
+| Implementation | Method overloading | Method overriding |
+| Binding | Early binding | Late binding |
+| Performance | More efficient | Slightly less efficient |
+| Flexibility | Less flexible | More flexible |
+| Called via | Reference type | Object type |
+| Method selection based on | Method signature and argument types | Actual object type |
