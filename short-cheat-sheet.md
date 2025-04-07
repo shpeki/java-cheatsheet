@@ -19,3 +19,15 @@
 - For objects, a copy of the reference (memory address) is passed.
 - You can modify the internal state of objects in methods, but you cannot change which object the original reference points to.
 - Understanding this distinction is crucial for writing correct Java code and avoiding unexpected behaviors.
+
+# Returning Multiple Values from Methods in Java
+## Comparison of Approaches
+
+| Approach | Type Safety | Semantic Clarity | Ease of Use | Best For |
+|----------|------------|-----------------|-------------|----------|
+| Custom Class | High | High | Medium | Related values with clear meaning |
+| Record (Java 16+) | High | High | High | Same as custom class, with less boilerplate |
+| Collection/Array | Medium | Low | Medium | Multiple values of the same type |
+| Map | Low | Medium | Medium | Dynamic sets of named values |
+| Output Parameters | Medium | Medium | Low | Performance-critical code |
+| Library Classes | Medium | Low | High | Quick solutions without custom classes |
