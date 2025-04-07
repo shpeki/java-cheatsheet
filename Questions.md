@@ -827,3 +827,15 @@ When discussing polymorphism in an interview:
    - The JVM's optimization techniques (JIT, inlining) often minimize the performance difference
    - Virtual method tables and how the JVM implements dynamic dispatch
   
+
+## Key Differences
+
+| Feature | Static Polymorphism | Dynamic Polymorphism |
+|---------|---------------------|----------------------|
+| Resolution Time | Compile time | Runtime |
+| Implementation | Method overloading | Method overriding |
+| Binding | Early binding | Late binding |
+| Performance | More efficient | Slightly less efficient |
+| Flexibility | Less flexible | More flexible |
+| Called via | Reference type | Object type |
+| Method selection based on | Method signature and argument types | Actual object type |
