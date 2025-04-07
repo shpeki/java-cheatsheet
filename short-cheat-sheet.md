@@ -45,3 +45,18 @@
 | Flexibility | Less flexible | More flexible |
 | Called via | Reference type | Object type |
 | Method selection based on | Method signature and argument types | Actual object type |
+
+
+# Interface vs Abstract Class in Java
+## Key Differences
+
+| Feature | Interface | Abstract Class |
+|---------|-----------|----------------|
+| Multiple Inheritance | Can implement multiple interfaces | Can extend only one abstract class |
+| State | No state (only constants) | Can have instance fields |
+| Constructor | No constructors | Can have constructors |
+| Method Access | All methods are implicitly public | Methods can have any access modifier |
+| Default Methods | Supported (since Java 8) | Always supported |
+| Purpose | Defines a contract of what a class can do | Provides a common base with some functionality |
+| Use Case | When unrelated classes would use the same method signatures | When classes share common state and behavior |
+| Instantiation | Cannot be instantiated | Cannot be instantiated |
