@@ -839,3 +839,286 @@ When discussing polymorphism in an interview:
 | Flexibility | Less flexible | More flexible |
 | Called via | Reference type | Object type |
 | Method selection based on | Method signature and argument types | Actual object type |
+
+# Interface vs Abstract Class in Java
+
+Both interfaces and abstract classes are fundamental concepts in Java that enable abstraction, polymorphism, and code reuse. However, they serve different purposes and have distinct characteristics. Understanding when to use each is crucial for proper object-oriented design.
+
+## Interface
+
+An interface in Java is a reference type, similar to a class, that can contain only constants, method signatures, default methods, static methods, and nested types.
+
+### Key Characteristics
+
+1. **Method Declarations**: Traditionally, interfaces could only declare method signatures without implementation (prior to Java 8).
+
+2. **Default Methods**: Since Java 8, interfaces can have default methods with implementations.
+
+3. **Static Methods**: Since Java 8, interfaces can have static methods with implementations.
+
+4. **Multiple Inheritance**: A class can implement multiple interfaces, allowing for a form of multiple inheritance.
+
+5. **No State**: Interfaces cannot have instance fields (except static final constants).
+
+6. **No Constructor**: Interfaces cannot have constructors.
+
+7. **Implicit Modifiers**: All methods in an interface are implicitly `public abstract` (if not default or static), and all fields are implicitly `public static final`.
+
+### Example
+
+```java
+public interface Drawable {
+    // Constant
+    int MAX_SIZE = 100; // Implicitly public static final
+    
+    // Abstract method (no implementation)
+    void draw(); // Implicitly public abstract
+    
+    // Default method (with implementation)
+    default void resize() {
+        System.out.println("Resizing using default implementation");
+    }
+    
+    // Static method
+    static void printInfo() {
+        System.out.println("This is a drawable object");
+    }
+}
+
+// Implementation
+public class Circle implements Drawable {
+    @Override
+    public void draw() {
+        System.out.println("Drawing a circle");
+    }
+    
+    // Can optionally override default methods
+    @Override
+    public void resize() {
+        System.out.println("Resizing circle");
+    }
+}
+
+// Usage
+public class Main {
+    public static void main(String[] args) {
+        Drawable circle = new Circle();
+        circle.draw();          // "Drawing a circle"
+        circle.resize();        // "Resizing circle"
+        Drawable.printInfo();   // "This is a drawable object"
+        System.out.println(Drawable.MAX_SIZE); // 100
+    }
+}
+```
+
+## Abstract Class
+
+An abstract class is a class that cannot be instantiated and is designed to be subclassed. It can have abstract methods (methods without a body) as well as concrete methods (methods with implementation).
+
+### Key Characteristics
+
+1. **Partial Implementation**: Can have both abstract methods and methods with implementation.
+
+2. **Constructor**: Can have constructors, though they can only be called from subclasses.
+
+3. **State**: Can have instance fields that maintain state.
+
+4. **Access Modifiers**: Methods can have any access modifier (public, protected, private).
+
+5. **Single Inheritance**: A class can extend only one abstract class.
+
+6. **Override**: Subclasses must implement all abstract methods unless the subclass is also abstract.
+
+### Example
+
+```java
+public abstract class Shape {
+    // Instance fields (state)
+    protected String color;
+    protected boolean filled;
+    
+    // Constructor
+    public Shape(String color, boolean filled) {
+        this.color = color;
+        this.filled = filled;
+    }
+    
+    // Abstract method (to be implemented by subclasses)
+    public abstract double getArea();
+    
+    // Concrete method (with implementation)
+    public void displayInfo() {
+        System.out.println("Color: " + color);
+        System.out.println("Filled: " + filled);
+    }
+    
+    // Getters and setters
+    public String getColor() {
+        return color;
+    }
+    
+    public void setColor(String color) {
+        this.color = color;
+    }
+}
+
+// Concrete subclass
+public class Rectangle extends Shape {
+    private double width;
+    private double height;
+    
+    public Rectangle(String color, boolean filled, double width, double height) {
+        super(color, filled); // Call to parent constructor
+        this.width = width;
+        this.height = height;
+    }
+    
+    // Implementing the abstract method
+    @Override
+    public double getArea() {
+        return width * height;
+    }
+}
+
+// Usage
+public class Main {
+    public static void main(String[] args) {
+        Shape rect = new Rectangle("Red", true, 5.0, 3.0);
+        rect.displayInfo(); // Method from abstract class
+        System.out.println("Area: " + rect.getArea()); // Implemented method
+    }
+}
+```
+
+## Key Differences
+
+| Feature | Interface | Abstract Class |
+|---------|-----------|----------------|
+| Multiple Inheritance | Can implement multiple interfaces | Can extend only one abstract class |
+| State | No state (only constants) | Can have instance fields |
+| Constructor | No constructors | Can have constructors |
+| Method Access | All methods are implicitly public | Methods can have any access modifier |
+| Default Methods | Supported (since Java 8) | Always supported |
+| Purpose | Defines a contract of what a class can do | Provides a common base with some functionality |
+| Use Case | When unrelated classes would use the same method signatures | When classes share common state and behavior |
+| Instantiation | Cannot be instantiated | Cannot be instantiated |
+
+## When to Use Interface vs Abstract Class
+
+### Use Interface When:
+
+1. **Multiple Inheritance**: You want a class to implement multiple behaviors.
+
+2. **Unrelated Classes**: You want to specify the behavior of a class regardless of where it fits in the inheritance hierarchy.
+
+3. **API Definition**: You want to define a contract for what classes can do without specifying how they do it.
+
+4. **Total Abstraction**: You want to achieve total abstraction with no implementation.
+
+5. **Future Extension**: You want the flexibility to add methods later (with default implementations) without breaking existing implementations.
+
+### Use Abstract Class When:
+
+1. **Common State and Behavior**: Related classes share common fields and methods.
+
+2. **Partial Implementation**: You want to provide a partial implementation and let subclasses complete the rest.
+
+3. **Access Control**: You need non-public members or methods.
+
+4. **Template Method Pattern**: You want to implement a template method pattern where you define a skeleton of an algorithm with some steps deferred to subclasses.
+
+5. **Evolving Hierarchy**: In an evolving codebase, abstract classes are sometimes easier to modify without breaking existing code.
+
+## Java 8 and Beyond
+
+With the introduction of default methods in Java 8, the line between interfaces and abstract classes has blurred. However, the fundamental differences in terms of state and inheritance model remain.
+
+### Functional Interfaces (Java 8+)
+
+A functional interface is an interface with a single abstract method (SAM) and can be used with lambda expressions:
+
+```java
+@FunctionalInterface
+public interface Runnable {
+    void run();
+}
+
+// Usage with lambda
+Runnable task = () -> System.out.println("Running task");
+task.run();
+```
+
+### Java 9+ Enhancements
+
+Java 9 introduced private methods in interfaces, further blurring the distinction:
+
+```java
+public interface ModernInterface {
+    default void publicMethod() {
+        privateHelper();
+    }
+    
+    private void privateHelper() {
+        System.out.println("Private helper method");
+    }
+}
+```
+
+## Design Considerations
+
+### "Is-a" vs "Can-do" Relationship
+
+- Abstract classes typically model an "is-a" relationship (inheritance)
+- Interfaces typically model a "can-do" relationship (capability)
+
+### Composition Over Inheritance
+
+In many cases, using interfaces with composition is preferable to deep inheritance hierarchies:
+
+```java
+interface Engine {
+    void start();
+}
+
+class ElectricEngine implements Engine {
+    public void start() {
+        System.out.println("Electric engine starts silently");
+    }
+}
+
+class Car {
+    private Engine engine; // Composition
+    
+    public Car(Engine engine) {
+        this.engine = engine;
+    }
+    
+    public void startCar() {
+        engine.start();
+    }
+}
+```
+
+### Best Practices
+
+1. **Prefer interfaces** over abstract classes when you can, as they provide more flexibility.
+2. **Use abstract classes** when you need to share code among closely related classes.
+3. **Consider using both** in a single design: abstract classes to share code and interfaces to define capabilities.
+4. **Design for extension**: Make it easy for implementers to extend your interfaces and abstract classes.
+
+## Common Interview Questions
+
+1. **Can an interface extend another interface?**
+   - Yes, an interface can extend one or more interfaces.
+
+2. **Can an abstract class implement an interface?**
+   - Yes, and it doesn't have to implement the interface methods (concrete subclasses will).
+
+3. **What happens if a class implements two interfaces with the same default method?**
+   - It must override the method to resolve the conflict.
+
+4. **Can an abstract class have a constructor?**
+   - Yes, it can have constructors that are called by its subclasses.
+
+5. **Can we create an instance of an interface or an abstract class?**
+   - No, but we can create instances of anonymous inner classes that implement/extend them.
