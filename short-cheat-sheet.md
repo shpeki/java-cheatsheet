@@ -60,3 +60,30 @@
 | Purpose | Defines a contract of what a class can do | Provides a common base with some functionality |
 | Use Case | When unrelated classes would use the same method signatures | When classes share common state and behavior |
 | Instantiation | Cannot be instantiated | Cannot be instantiated |
+
+### Stack Memory
+
+- Contains method-specific values and references
+- Fixed in size and cannot be dynamically expanded
+- Automatically allocated and deallocated when a method is called and returns
+- Faster access compared to heap memory
+- Thread-safe as each thread has its own stack
+
+### Heap Memory
+
+- Created when the JVM starts
+- Stores objects and JRE classes
+- Shared among all threads
+- Not thread-safe
+- Uses garbage collection for memory management
+- Can be divided into generations for more efficient garbage collection
+### Differences between Stack and Heap
+
+| Feature | Stack | Heap |
+|---------|-------|------|
+| Memory allocation | Automatic | Manual and Garbage Collection |
+| Deallocation | Automatic | Garbage Collection |
+| Access speed | Faster | Slower |
+| Thread safety | Each thread has its own stack | Shared among all threads |
+| Memory efficiency | More efficient but limited size | Less efficient but larger |
+| Data stored | Method calls, local variables, references | Objects, instance variables, class definitions |
