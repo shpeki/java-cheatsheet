@@ -1122,3 +1122,78 @@ class Car {
 
 5. **Can we create an instance of an interface or an abstract class?**
    - No, but we can create instances of anonymous inner classes that implement/extend them.
+
+
+# PostgreSQL Transaction Isolation Levels
+
+## Introduction
+
+Transaction isolation is a critical concept in database systems that determines how concurrent transactions interact with each other. PostgreSQL implements the SQL standard isolation levels while providing robust mechanisms to ensure data integrity and consistency.
+
+## The Four Isolation Levels in PostgreSQL
+
+PostgreSQL supports all four isolation levels defined in the SQL standard:
+
+### 1. READ UNCOMMITTED
+
+In theory, this level allows a transaction to see uncommitted changes made by other transactions ("dirty reads"). However, PostgreSQL does not actually implement dirty reads.
+
+**Important note:** In PostgreSQL, READ UNCOMMITTED is treated the same as READ COMMITTED. This means that even if you explicitly set the isolation level to READ UNCOMMITTED, PostgreSQL will still provide READ COMMITTED guarantees.
+
+### 2. READ COMMITTED
+
+This is the **default isolation level** in PostgreSQL.
+
+**Characteristics:**
+- Prevents dirty reads (you cannot see uncommitted changes from other transactions)
+- Does not prevent non-repeatable reads (if you read the same row twice, you might get different results if another transaction commits changes to that row in between your reads)
+- Does not prevent phantom reads (a transaction might return different rows on repeated queries if another transaction adds or removes rows that match the query)
+
+### 3. REPEATABLE READ
+
+**Characteristics:**
+- Prevents dirty reads
+- Prevents non-repeatable reads (if you read the same row twice, you get the same result regardless of concurrent committed changes)
+- In PostgreSQL, it also prevents phantom reads (unlike the SQL standard which doesn't require this)
+- Uses snapshot isolation to maintain a consistent view of the database as it was at the beginning of the transaction
+
+### 4. SERIALIZABLE
+
+The strictest isolation level.
+
+**Characteristics:**
+- Prevents all the anomalies mentioned above
+- Provides true serializable transaction execution, as if transactions were executed one after another, not concurrently
+- Uses serializable snapshot isolation (SSI) which can detect read-write conflicts
+- May result in serialization failures (transactions might be rolled back with a serialization error)
+
+## Common Interview Questions
+
+### Q: What is the default isolation level in PostgreSQL?
+A: READ COMMITTED
+
+### Q: Does PostgreSQL truly implement READ UNCOMMITTED?
+A: No, PostgreSQL treats READ UNCOMMITTED the same as READ COMMITTED.
+
+### Q: How does REPEATABLE READ in PostgreSQL differ from the SQL standard?
+A: PostgreSQL's REPEATABLE READ also prevents phantom reads, which goes beyond the SQL standard requirements.
+
+### Q: What mechanism does PostgreSQL use to implement isolation levels?
+A: PostgreSQL uses Multi-Version Concurrency Control (MVCC) with snapshot isolation.
+
+### Q: When would you use SERIALIZABLE isolation level?
+A: When you need the strongest consistency guarantees and are willing to accept potential serialization failures (transactions being rolled back).
+
+### Q: What kinds of anomalies can occur in READ COMMITTED level?
+A: Non-repeatable reads and phantom reads can occur.
+
+## Practical Considerations
+
+- Higher isolation levels provide stronger consistency guarantees but may reduce concurrency and performance
+- SERIALIZABLE can lead to serialization failures where transactions need to be retried
+- For most applications, READ COMMITTED (the default) provides a good balance between consistency and performance
+- Use REPEATABLE READ or SERIALIZABLE only when your application logic requires stronger isolation guarantees
+
+## Conclusion
+
+Understanding PostgreSQL's transaction isolation levels is crucial for designing applications that correctly handle concurrent access to data. Each level makes different trade-offs between consistency, performance, and the potential for anomalies.
