@@ -286,3 +286,242 @@
 | Java 14 | Switch Expressions | `yield value` |
 | Java 16 | Records | `record Person(String name, int age) {}` |
 | Java 17 | Sealed Classes | `sealed interface X permits Y, Z {}` |
+
+# Java Interview Questions & Answers
+
+## Stack & Memory
+
+### What is Stack Overflow in Java?
+A StackOverflowError occurs when a program's call stack exceeds its allocated memory limit, typically due to excessive recursion without proper base cases. The JVM allocates a fixed stack size (usually 512KB-1MB) that can be modified with `-Xss` parameter.
+
+### What is a Frame in Stack?
+A stack frame (activation record) is a data structure created for each method invocation containing:
+- Local variables and parameters
+- Operand stack for intermediate calculations
+- Frame data (runtime constant pool reference, return address, previous frame reference)
+When a method completes, its frame is popped from the stack.
+
+### How to Get OutOfMemoryError in Java?
+OutOfMemoryError occurs when the JVM cannot allocate objects due to insufficient memory. Common types:
+- Java Heap Space: Heap is full (`-Xmx` limit reached)
+- Metaspace: Class metadata area is full
+- GC Overhead Limit Exceeded: GC running constantly with minimal recovery
+- Direct Buffer Memory: NIO direct buffers exceed limit
+- Unable to Create New Native Thread: OS limit on thread creation reached
+
+### What are Memory Leaks in Java?
+Memory leaks occur when objects remain referenced but are no longer needed, preventing garbage collection. Common causes:
+- Static collections growing indefinitely
+- Unclosed resources (streams, connections)
+- HashMap with mutable keys
+- Non-static inner classes holding outer class references
+- Underegistered listeners and callbacks
+- ThreadLocal variables not removed
+- Unbounded caches without eviction policies
+
+## Concurrency
+
+### What is Thread Starvation?
+Thread starvation occurs when a thread cannot gain regular access to shared resources for extended periods. Causes include:
+- Priority issues (high-priority threads monopolizing CPU)
+- Unbalanced synchronization patterns
+- Non-fair locks that don't ensure first-come-first-served access
+- Long-running operations holding locks
+
+### What is Main Memory in Java?
+Main memory in Java refers to the heap where all objects are allocated. It's shared among all threads in the JVM. The Java Memory Model defines rules for when changes by one thread become visible to others. Proper synchronization mechanisms (synchronized, volatile, atomic classes) ensure consistency between threads and main memory.
+
+### Where is Shared CPU Cache in Java?
+The concept of "shared CPU cache" isn't Java-specific but refers to hardware caches in multi-core processors (L1, L2, L3). Java doesn't directly manage these, but the JVM memory model accounts for them:
+- `volatile` ensures reads/writes go directly to main memory
+- `synchronized` blocks establish memory barriers that flush caches
+- Atomic variables use CPU instructions that work with cache coherence protocols
+
+## Collections & Data Structures
+
+### How HashMap Handles Collisions?
+HashMap handles collisions (when different keys hash to the same bucket) using:
+1. **Chaining**: Stores colliding entries in a linked list
+2. **Tree Conversion** (Java 8+): If a bucket's linked list exceeds 8 entries, it's converted to a balanced red-black tree, improving worst-case performance from O(n) to O(log n)
+
+### How HashMap Finds the Bucket for a Key?
+HashMap finding a bucket follows these steps:
+1. Calculate the key's hashCode()
+2. Improve hash distribution: hash = hashCode ^ (hashCode >>> 16)
+3. Determine bucket index: index = hash & (capacity - 1)
+4. Access that bucket in the internal array
+5. If collisions exist, search the list/tree for the exact key using equals()
+
+### When to Use List vs HashMap?
+**Use List when:**
+- Order matters (sequence is important)
+- You need access by position/index
+- Duplicates are allowed or needed
+- You frequently iterate through all elements
+
+**Use HashMap when:**
+- Fast key-based lookup is needed
+- Associations between keys and values are required
+- You need to check if a key exists quickly
+- Duplicate keys should be eliminated
+
+## Spring Framework
+
+### How to Resolve Two Beans Implementing the Same Interface?
+When multiple beans implement the same interface in Spring, resolve autowiring ambiguity with:
+1. **@Qualifier**: Specify which bean to inject (`@Qualifier("beanName")`)
+2. **@Primary**: Mark one implementation as the default
+3. **Collections**: Inject all implementations (`List<Interface>` or `Map<String, Interface>`)
+4. **Name-based autowiring**: Name the variable after the implementation
+5. **@Resource**: Use JSR-250's name-based injection
+6. **Custom qualifiers**: Create semantic qualifier annotations
+7. **Conditional beans**: Register beans based on conditions
+8. **Configuration classes**: Explicitly configure with @Bean methods
+
+### What is Dependency Inversion?
+Dependency Inversion Principle (DIP) states:
+1. High-level modules should not depend on low-level modules; both should depend on abstractions
+2. Abstractions should not depend on details; details should depend on abstractions
+
+Benefits:
+- Decoupling between components
+- Flexibility to switch implementations
+- Easier testing through mocking
+- Better maintenance and extensibility
+
+## Java Language Features
+
+### What Does Final Mean?
+- **final class**: Cannot be extended/subclassed
+- **final method**: Cannot be overridden in subclasses
+- **final field**: Can only be assigned once (primitives cannot change value; references cannot point to a different object)
+- **final parameter**: Cannot be reassigned within a method
+
+### When to Use Abstract Class vs Interface?
+**Use Abstract Class when:**
+- You need to share code among related classes
+- You want to provide partial implementation
+- You need instance state (fields)
+- You require access control beyond public
+- You need constructors
+- Your design represents an "is-a" relationship
+
+**Use Interface when:**
+- You want to define a contract without implementation constraints
+- Multiple inheritance is needed
+- The capability applies to unrelated classes
+- Various classes will implement the contract differently
+- You want to use functional programming (lambdas)
+- You need to evolve the API without breaking implementations
+
+### When to Use Static Methods?
+Use static methods for:
+- Utility functions independent of object state
+- Factory methods that create objects
+- Entry points (main method)
+- Constants and configuration (with final)
+- Helper methods for stateless operations
+- Singleton access methods
+- Operations on multiple objects of the same class
+
+Avoid static methods when:
+- The method needs object state
+- The method might be overridden (polymorphism)
+- Testing requires mocking
+- The method calls instance methods
+- State needs to be maintained between calls
+
+## Databases
+
+### What is an Index in a Database?
+An index is a data structure that improves data retrieval speed by allowing the database to find rows without scanning the entire table. Types include:
+- Primary indexes (for primary keys)
+- Unique indexes (enforce uniqueness)
+- Composite indexes (multiple columns)
+- Clustered indexes (determine physical data order)
+- Non-clustered indexes (separate from the data)
+- Full-text indexes (optimized for text search)
+
+Indexes speed up WHERE clauses, JOIN operations, and ORDER BY clauses but slow down write operations.
+
+### Does the Order of Columns in Composite Indexes Matter?
+Yes, column order in composite indexes is crucial:
+- The leftmost prefix rule applies: queries must reference columns from left to right
+- A composite index on (A, B, C) can be used for queries on A, A+B, or A+B+C
+- It cannot be used for queries on just B, just C, or B+C
+- The database sorts first by the first column, then by subsequent columns
+- For optimal performance, put equality conditions before range conditions and consider column selectivity
+
+## Microservices
+
+### What is Service Discovery in Java?
+Service discovery allows microservices to locate and communicate with each other without hardcoded locations. Java implementations include:
+- **Spring Cloud Netflix Eureka**: Popular registry for Spring applications
+- **Consul**: Service discovery with configuration management
+- **Apache ZooKeeper**: With Apache Curator for service discovery
+- **Kubernetes Service Discovery**: Built into the platform
+
+Service discovery enables dynamic scaling, high availability, location transparency, and load balancing in distributed systems.
+
+### What are Server-Sent Events?
+Server-Sent Events (SSE) is a technology allowing servers to push updates to clients over HTTP. Unlike WebSockets, SSE is a one-way channel (server to client). Characteristics:
+- Uses standard HTTP with text/event-stream content type
+- Automatic reconnection built into the protocol
+- Text-based format with data, event, and id fields
+- Simpler than WebSockets for one-way communication
+
+Java implementations include Servlet API, Spring MVC's SseEmitter, and Spring WebFlux's reactive support.
+
+## Algorithms
+
+### Checking if a String is a Palindrome
+```java
+public boolean isPalindrome(String str) {
+    // Clean the string: remove non-alphanumeric characters and convert to lowercase
+    String cleanStr = str.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+    
+    // Use two pointers approach
+    int left = 0;
+    int right = cleanStr.length() - 1;
+    
+    while (left < right) {
+        if (cleanStr.charAt(left) != cleanStr.charAt(right)) {
+            return false;
+        }
+        left++;
+        right--;
+    }
+    
+    return true;
+}
+```
+
+## Garbage Collection
+
+### What is Garbage Collection in Java?
+Garbage Collection (GC) is an automatic memory management process that identifies and reclaims memory from objects no longer in use. Java uses a generational approach:
+- **Young Generation**: New objects allocated here, undergoes frequent Minor GC
+- **Old Generation**: Long-lived objects promoted here, undergoes less frequent Major GC
+- **Metaspace**: Stores class metadata (replaced PermGen in Java 8+)
+
+Common GC algorithms include:
+- Serial GC (single-threaded)
+- Parallel GC (multi-threaded)
+- CMS (Concurrent Mark Sweep)
+- G1 (Garbage First)
+- ZGC and Shenandoah (low-latency collectors)
+
+### How to Force Garbage Collection?
+You can request (but not force) garbage collection with:
+```java
+System.gc();
+// or
+Runtime.getRuntime().gc();
+```
+
+These are only hints to the JVM, which may ignore the request. In production, it's generally better to:
+- Set appropriate heap sizes (-Xms and -Xmx)
+- Eliminate memory leaks
+- Use tools like VisualVM to monitor memory
+- Use weak references for caches
+- Let the JVM manage collection automatically
