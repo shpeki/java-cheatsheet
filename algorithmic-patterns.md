@@ -821,3 +821,364 @@ public int maxSubarraySumCircular(int[] nums) {
 8. **Monotonic Stack/Queue:** Useful for finding the next greater/smaller element or problems like the histogram area.
 
 Remember that many array problems can be solved using multiple approaches. Practice explaining your thinking process and consider trade-offs between different solutions.
+
+
+# Solving Palindrome Problems in Java
+
+Palindrome problems are a common type of string/array manipulation task in coding interviews. A palindrome is a sequence that reads the same forward and backward (like "racecar" or "madam").
+
+This document covers the most common palindrome problems and their Java solutions.
+
+## 1. Check if a String is a Palindrome
+
+The most basic palindrome problem is to check if a given string is a palindrome.
+
+### Two-Pointer Approach
+
+```java
+public boolean isPalindrome(String s) {
+    // Clean the string: convert to lowercase and remove non-alphanumeric characters
+    s = s.toLowerCase().replaceAll("[^a-z0-9]", "");
+    
+    int left = 0;
+    int right = s.length() - 1;
+    
+    while (left < right) {
+        if (s.charAt(left) != s.charAt(right)) {
+            return false;
+        }
+        left++;
+        right--;
+    }
+    
+    return true;
+}
+```
+
+**Time Complexity**: O(n)  
+**Space Complexity**: O(1) (not counting the cleaned string)
+
+## 2. Longest Palindromic Substring
+
+Find the longest substring that is a palindrome in a given string.
+
+### Expand Around Center Approach
+
+```java
+public String longestPalindrome(String s) {
+    if (s == null || s.length() < 1) return "";
+    
+    int start = 0, end = 0;
+    
+    for (int i = 0; i < s.length(); i++) {
+        // Handle odd-length palindromes (centered at i)
+        int len1 = expandAroundCenter(s, i, i);
+        
+        // Handle even-length palindromes (centered between i and i+1)
+        int len2 = expandAroundCenter(s, i, i + 1);
+        
+        int len = Math.max(len1, len2);
+        
+        // Update longest palindrome if current is longer
+        if (len > end - start) {
+            // Calculate start and end indices
+            start = i - (len - 1) / 2;
+            end = i + len / 2;
+        }
+    }
+    
+    return s.substring(start, end + 1);
+}
+
+private int expandAroundCenter(String s, int left, int right) {
+    while (left >= 0 && right < s.length() && s.charAt(left) == s.charAt(right)) {
+        left--;
+        right++;
+    }
+    // Return length of palindrome
+    // Note the i-j-1 pattern: right-left-1
+    return right - left - 1;
+}
+```
+
+**Time Complexity**: O(n²)  
+**Space Complexity**: O(1)
+
+### Why right-left-1?
+
+In the `expandAroundCenter` method, we use `right - left - 1` to calculate the length of the palindrome. This is a classic example of the i-j-1 pattern in array/string problems. When the while loop exits, both `left` and `right` have gone one position too far (left is one position before the palindrome starts, and right is one position after it ends), so the length is `(right - 1) - (left + 1) + 1 = right - left - 1`.
+
+## 3. Count All Palindromic Substrings
+
+Count the number of palindromic substrings in a given string.
+
+```java
+public int countSubstrings(String s) {
+    int count = 0;
+    
+    for (int i = 0; i < s.length(); i++) {
+        // Count odd-length palindromes centered at i
+        count += countPalindromesAroundCenter(s, i, i);
+        
+        // Count even-length palindromes centered between i and i+1
+        count += countPalindromesAroundCenter(s, i, i + 1);
+    }
+    
+    return count;
+}
+
+private int countPalindromesAroundCenter(String s, int left, int right) {
+    int count = 0;
+    
+    while (left >= 0 && right < s.length() && s.charAt(left) == s.charAt(right)) {
+        count++;
+        left--;
+        right++;
+    }
+    
+    return count;
+}
+```
+
+**Time Complexity**: O(n²)  
+**Space Complexity**: O(1)
+
+## 4. Dynamic Programming Approach for Palindromes
+
+For some palindrome problems, dynamic programming provides an efficient solution by avoiding redundant calculations.
+
+```java
+public String longestPalindromeDP(String s) {
+    int n = s.length();
+    if (n < 2) return s;
+    
+    // dp[i][j] = true if substring s[i...j] is palindrome
+    boolean[][] dp = new boolean[n][n];
+    
+    // All substrings of length 1 are palindromes
+    for (int i = 0; i < n; i++) {
+        dp[i][i] = true;
+    }
+    
+    int start = 0;
+    int maxLength = 1;
+    
+    // Check for substrings of length 2
+    for (int i = 0; i < n - 1; i++) {
+        if (s.charAt(i) == s.charAt(i + 1)) {
+            dp[i][i + 1] = true;
+            start = i;
+            maxLength = 2;
+        }
+    }
+    
+    // Check for lengths greater than 2
+    // k is the substring length - 1
+    for (int k = 3; k <= n; k++) {
+        // i is the starting index
+        for (int i = 0; i < n - k + 1; i++) {
+            // j is the ending index
+            int j = i + k - 1;
+            
+            // Check if current substring is palindrome
+            if (dp[i + 1][j - 1] && s.charAt(i) == s.charAt(j)) {
+                dp[i][j] = true;
+                
+                if (k > maxLength) {
+                    start = i;
+                    maxLength = k;
+                }
+            }
+        }
+    }
+    
+    return s.substring(start, start + maxLength);
+}
+```
+
+**Time Complexity**: O(n²)  
+**Space Complexity**: O(n²)
+
+## 5. Palindrome Partitioning
+
+Find all possible ways to partition a string so that each substring is a palindrome.
+
+```java
+public List<List<String>> partition(String s) {
+    List<List<String>> result = new ArrayList<>();
+    backtrack(result, new ArrayList<>(), s, 0);
+    return result;
+}
+
+private void backtrack(List<List<String>> result, List<String> current, String s, int start) {
+    if (start >= s.length()) {
+        result.add(new ArrayList<>(current));
+        return;
+    }
+    
+    for (int end = start; end < s.length(); end++) {
+        if (isPalindrome(s, start, end)) {
+            // Add current palindrome substring
+            current.add(s.substring(start, end + 1));
+            // Recurse for the remaining string
+            backtrack(result, current, s, end + 1);
+            // Backtrack
+            current.remove(current.size() - 1);
+        }
+    }
+}
+
+private boolean isPalindrome(String s, int low, int high) {
+    while (low < high) {
+        if (s.charAt(low++) != s.charAt(high--)) {
+            return false;
+        }
+    }
+    return true;
+}
+```
+
+**Time Complexity**: O(n * 2^n) in the worst case  
+**Space Complexity**: O(n) for recursion stack
+
+## 6. Valid Palindrome II (Allow One Deletion)
+
+Determine if a string can become a palindrome by deleting at most one character.
+
+```java
+public boolean validPalindrome(String s) {
+    int left = 0;
+    int right = s.length() - 1;
+    
+    while (left < right) {
+        if (s.charAt(left) != s.charAt(right)) {
+            // Try skipping character at left or right
+            return isPalindrome(s, left + 1, right) || isPalindrome(s, left, right - 1);
+        }
+        left++;
+        right--;
+    }
+    
+    return true;
+}
+
+private boolean isPalindrome(String s, int left, int right) {
+    while (left < right) {
+        if (s.charAt(left) != s.charAt(right)) {
+            return false;
+        }
+        left++;
+        right--;
+    }
+    return true;
+}
+```
+
+**Time Complexity**: O(n)  
+**Space Complexity**: O(1)
+
+## 7. Palindromic Substrings in Arrays
+
+The palindrome concept can also be applied to arrays, where we check if an array segment reads the same forward and backward.
+
+```java
+public boolean isArrayPalindrome(int[] arr, int start, int end) {
+    while (start < end) {
+        if (arr[start] != arr[end]) {
+            return false;
+        }
+        start++;
+        end--;
+    }
+    return true;
+}
+```
+
+## 8. Manacher's Algorithm - Advanced Technique
+
+For finding all palindromic substrings in a string, Manacher's algorithm provides an O(n) solution, but it's more complex:
+
+```java
+public String longestPalindromeManacher(String s) {
+    if (s == null || s.length() == 0) return "";
+    
+    // Preprocess the string to handle both odd and even length palindromes
+    StringBuilder sb = new StringBuilder();
+    sb.append('#');
+    for (char c : s.toCharArray()) {
+        sb.append(c);
+        sb.append('#');
+    }
+    String processedString = sb.toString();
+    
+    int n = processedString.length();
+    int[] p = new int[n]; // p[i] = radius of palindrome centered at i
+    int center = 0;
+    int rightBoundary = 0;
+    
+    for (int i = 0; i < n; i++) {
+        // Mirror of i with respect to center
+        int mirror = 2 * center - i;
+        
+        // If i is within the right boundary, we can use the mirror's value
+        if (i < rightBoundary) {
+            p[i] = Math.min(rightBoundary - i, p[mirror]);
+        }
+        
+        // Attempt to expand palindrome centered at i
+        int left = i - (p[i] + 1);
+        int right = i + (p[i] + 1);
+        
+        while (left >= 0 && right < n && 
+               processedString.charAt(left) == processedString.charAt(right)) {
+            p[i]++;
+            left--;
+            right++;
+        }
+        
+        // If palindrome centered at i expands past rightBoundary,
+        // adjust center and boundary
+        if (i + p[i] > rightBoundary) {
+            center = i;
+            rightBoundary = i + p[i];
+        }
+    }
+    
+    // Find the maximum element in p
+    int maxLen = 0;
+    int centerIndex = 0;
+    for (int i = 0; i < n; i++) {
+        if (p[i] > maxLen) {
+            maxLen = p[i];
+            centerIndex = i;
+        }
+    }
+    
+    // Extract the longest palindrome
+    int start = (centerIndex - maxLen) / 2;
+    return s.substring(start, start + maxLen);
+}
+```
+
+**Time Complexity**: O(n)  
+**Space Complexity**: O(n)
+
+## Interview Tips for Palindrome Problems
+
+1. **Two-Pointer Technique**: This is the most efficient way to check if a string is a palindrome - start from both ends and move inward.
+
+2. **Expand Around Center**: For finding palindromic substrings, the expand-around-center approach is intuitive and efficient.
+
+3. **Handle Both Odd and Even Length**: Remember that palindromes can have odd or even lengths. For odd lengths, expand from a single character. For even lengths, expand from between two characters.
+
+4. **String Preprocessing**: For case-insensitive palindrome checks, convert to lowercase and remove non-alphanumeric characters first.
+
+5. **Dynamic Programming**: While more complex, DP can be useful for certain palindrome problems, especially when you need to store intermediate results.
+
+6. **Consider Edge Cases**: Empty strings, single characters, and strings with all identical characters are all palindromes.
+
+7. **Optimization**: For very long strings, you can add early termination checks to improve average-case performance.
+
+8. **Manacher's Algorithm**: Know about this O(n) algorithm for finding all palindromic substrings, but understand that it's complex and typically not expected in standard interviews unless specifically mentioned.
+
+By understanding these common approaches and the i-j-1 pattern involved in many palindrome problems, you'll be well-prepared to solve most palindrome-related interview questions.
