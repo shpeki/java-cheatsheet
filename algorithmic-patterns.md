@@ -1182,3 +1182,296 @@ public String longestPalindromeManacher(String s) {
 8. **Manacher's Algorithm**: Know about this O(n) algorithm for finding all palindromic substrings, but understand that it's complex and typically not expected in standard interviews unless specifically mentioned.
 
 By understanding these common approaches and the i-j-1 pattern involved in many palindrome problems, you'll be well-prepared to solve most palindrome-related interview questions.
+
+# Analyzing Time and Space Complexity for Coding Interviews
+
+Understanding how to analyze time and space complexity is essential for coding interviews. This document provides a systematic approach to determining algorithmic complexity, with specific examples from array and string problems.
+
+## Understanding Big O Notation
+
+Big O notation is used to describe the upper bound of an algorithm's time or space requirements as a function of input size.
+
+### Common Time Complexities (from fastest to slowest)
+
+1. **O(1) - Constant Time**: The algorithm takes the same amount of time regardless of input size.
+2. **O(log n) - Logarithmic Time**: Time increases logarithmically with input size.
+3. **O(n) - Linear Time**: Time increases linearly with input size.
+4. **O(n log n) - Linearithmic Time**: Time increases by n log n with input size.
+5. **O(n²) - Quadratic Time**: Time increases quadratically with input size.
+6. **O(2^n) - Exponential Time**: Time doubles with each additional input element.
+7. **O(n!) - Factorial Time**: Time increases factorially with input size.
+
+## How to Calculate Time Complexity
+
+### Step 1: Identify the Basic Operations
+
+Count the operations that dominate the runtime:
+- Assignments, arithmetic operations, comparisons
+- Array/string access or modification
+- Function calls
+
+### Step 2: Determine How Many Times Operations Are Executed
+
+Count how many times each operation is performed based on the input size n.
+
+### Step 3: Express the Count as a Function of the Input Size
+
+Simplify the function by:
+- Dropping constants
+- Keeping only the highest-order term
+
+## How to Calculate Space Complexity
+
+Space complexity measures the additional memory an algorithm uses as a function of the input size.
+
+### Step 1: Identify Memory Allocations
+
+Count:
+- Variables and constants
+- Data structures
+- Recursion stack
+
+### Step 2: Determine How Memory Usage Scales with Input Size
+
+Express memory usage as a function of n.
+
+### Step 3: Simplify to the Highest-Order Term
+
+Just like with time complexity, keep only the dominant term.
+
+## Examples with Array and String Algorithms
+
+### Example 1: Linear Search in an Array
+
+```java
+public int linearSearch(int[] arr, int target) {
+    for (int i = 0; i < arr.length; i++) {
+        if (arr[i] == target) {
+            return i;
+        }
+    }
+    return -1;
+}
+```
+
+**Time Complexity Analysis:**
+- Basic operation: Comparison `arr[i] == target`
+- How many times: In the worst case, n times (where n is array length)
+- Function: O(n) - Linear time
+
+**Space Complexity Analysis:**
+- Additional memory: Only a few variables (i, target)
+- Function: O(1) - Constant space
+
+### Example 2: Two Sum Problem (Brute Force)
+
+```java
+public int[] twoSum(int[] nums, int target) {
+    for (int i = 0; i < nums.length; i++) {
+        for (int j = i + 1; j < nums.length; j++) {
+            if (nums[i] + nums[j] == target) {
+                return new int[] {i, j};
+            }
+        }
+    }
+    return new int[] {};
+}
+```
+
+**Time Complexity Analysis:**
+- Basic operation: Comparison `nums[i] + nums[j] == target`
+- Outer loop: n iterations
+- Inner loop: Up to n-1, n-2, ..., 1 iterations
+- Total comparisons: n + (n-1) + (n-2) + ... + 1 = n(n+1)/2
+- Simplified: O(n²) - Quadratic time
+
+**Space Complexity Analysis:**
+- Additional memory: Only a few variables
+- Function: O(1) - Constant space
+
+### Example 3: Two Sum Problem (Optimized with HashMap)
+
+```java
+public int[] twoSum(int[] nums, int target) {
+    Map<Integer, Integer> map = new HashMap<>();
+    
+    for (int i = 0; i < nums.length; i++) {
+        int complement = target - nums[i];
+        if (map.containsKey(complement)) {
+            return new int[] {map.get(complement), i};
+        }
+        map.put(nums[i], i);
+    }
+    
+    return new int[] {};
+}
+```
+
+**Time Complexity Analysis:**
+- Basic operations: HashMap lookup and insertion (both typically O(1))
+- How many times: n iterations through the array
+- Function: O(n) - Linear time
+
+**Space Complexity Analysis:**
+- Additional memory: HashMap can store up to n elements
+- Function: O(n) - Linear space
+
+### Example 4: Merge Sort
+
+```java
+public void mergeSort(int[] arr, int left, int right) {
+    if (left < right) {
+        int mid = left + (right - left) / 2;
+        mergeSort(arr, left, mid);
+        mergeSort(arr, mid + 1, right);
+        merge(arr, left, mid, right);
+    }
+}
+```
+
+**Time Complexity Analysis:**
+- Recurrence relation: T(n) = 2T(n/2) + O(n)
+- Using Master Theorem: O(n log n) - Linearithmic time
+
+**Space Complexity Analysis:**
+- Recursion depth: O(log n)
+- Temporary arrays in merge: O(n)
+- Function: O(n) - Linear space
+
+### Example 5: Expanding Around Center for Palindromes
+
+```java
+public String longestPalindrome(String s) {
+    if (s == null || s.length() < 1) return "";
+    
+    int start = 0, end = 0;
+    
+    for (int i = 0; i < s.length(); i++) {
+        int len1 = expandAroundCenter(s, i, i);
+        int len2 = expandAroundCenter(s, i, i + 1);
+        int len = Math.max(len1, len2);
+        
+        if (len > end - start) {
+            start = i - (len - 1) / 2;
+            end = i + len / 2;
+        }
+    }
+    
+    return s.substring(start, end + 1);
+}
+
+private int expandAroundCenter(String s, int left, int right) {
+    while (left >= 0 && right < s.length() && s.charAt(left) == s.charAt(right)) {
+        left--;
+        right++;
+    }
+    return right - left - 1;
+}
+```
+
+**Time Complexity Analysis:**
+- Main function: Loops n times
+- expandAroundCenter: Each call can examine up to n characters
+- Total operations: O(n²) - Quadratic time
+
+**Space Complexity Analysis:**
+- No additional data structures that scale with input size
+- Function: O(1) - Constant space
+
+## Common Patterns to Recognize
+
+### 1. Loop-based complexity
+
+#### Single loop through data
+```java
+for (int i = 0; i < n; i++) {
+    // O(1) operations
+}
+```
+**Time Complexity**: O(n)
+
+#### Nested loops
+```java
+for (int i = 0; i < n; i++) {
+    for (int j = 0; j < n; j++) {
+        // O(1) operations
+    }
+}
+```
+**Time Complexity**: O(n²)
+
+#### Logarithmic loops
+```java
+for (int i = 1; i < n; i = i * 2) {
+    // O(1) operations
+}
+```
+**Time Complexity**: O(log n)
+
+### 2. Recursive algorithm complexity
+
+For recursive functions, the time complexity often depends on:
+- Number of recursive calls
+- Work done in each call
+
+**Example: Binary search**
+```java
+public int binarySearch(int[] arr, int target, int left, int right) {
+    if (left > right) return -1;
+    
+    int mid = left + (right - left) / 2;
+    
+    if (arr[mid] == target) return mid;
+    if (arr[mid] > target) return binarySearch(arr, target, left, mid - 1);
+    return binarySearch(arr, target, mid + 1, right);
+}
+```
+**Time Complexity**: O(log n) - Each call cuts the problem size in half
+
+### 3. Space complexity in recursion
+
+The space complexity of a recursive algorithm includes the recursion stack.
+
+**Example: Factorial calculation**
+```java
+public int factorial(int n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
+}
+```
+**Space Complexity**: O(n) - Due to n recursive calls on the stack
+
+## Tips for Time and Space Complexity Analysis in Interviews
+
+1. **Analyze from highest to lowest complexity**: Start with the most expensive operations and see if they dominate the runtime.
+
+2. **Consider average vs. worst case**: Be explicit about which case you're analyzing. For example, hash table lookups are O(1) on average but O(n) in the worst case.
+
+3. **Watch for amortized complexity**: Some operations might be expensive occasionally but cheap on average (like resizing an ArrayList).
+
+4. **Beware of hidden operations**: String concatenation, `ArrayList.add()`, and similar operations may have non-obvious complexity.
+
+5. **For recursive algorithms**:
+   - Identify the recurrence relation
+   - Consider using the Master Theorem when applicable
+
+6. **Explain your reasoning**: When analyzing complexity in an interview, explain your thought process step by step.
+
+7. **For space complexity, remember**:
+   - Input space vs. auxiliary space
+   - Recursion stack usage
+   - Temporary data structures
+
+## Common Complexity Classes by Algorithm Type
+
+| Algorithm Type | Typical Time Complexity | Examples |
+|----------------|-------------------------|----------|
+| Simple traversal | O(n) | Linear search, traversing a linked list |
+| Binary search | O(log n) | Binary search in sorted array |
+| Efficient sorting | O(n log n) | Merge sort, heap sort, quicksort (average) |
+| Nested loops | O(n²) | Bubble sort, insertion sort, quadratic solutions |
+| Hash-based | O(n) | Two Sum optimized, most hash table operations |
+| Dynamic programming | O(n²) or O(n*m) | Longest common subsequence, knapsack problems |
+| Backtracking | O(2^n) or O(n!) | N-Queens, permutations |
+
+By understanding these patterns and practicing complexity analysis on diverse examples, you'll develop the intuition needed to quickly determine algorithmic efficiency during coding interviews.
