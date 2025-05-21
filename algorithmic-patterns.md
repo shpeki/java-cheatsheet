@@ -36,6 +36,7 @@ public int[] twoSum(int[] numbers, int target) {
     
     return new int[] {-1, -1}; // No solution found
 }
+```
 
 ## 2. Fast & Slow Pointers (Tortoise and Hare)
 
@@ -76,6 +77,7 @@ public boolean hasCycle(ListNode head) {
     
     return false;                  // Fast pointer reached the end, so no cycle
 }
+```
 
 ## 3. Prefix Sum / Cumulative Sum
 
@@ -116,6 +118,7 @@ public int subarraySum(int[] nums, int k) {
     
     return count;
 }
+```
 
 ## 4. Monotonic Queue / Deque
 
@@ -161,6 +164,7 @@ public int[] maxSlidingWindow(int[] nums, int k) {
     
     return result;
 }
+```
 
 ## 5. Hash Map / Hash Set (for frequency/count tracking)
 
@@ -203,6 +207,7 @@ public int lengthOfLongestSubstring(String s) {
     
     return maxLength;
 }
+```
 
 ## 6. Backtracking (for combinations/permutations with constraints)
 
@@ -240,6 +245,7 @@ private void backtrack(List<List<Integer>> result, List<Integer> tempList, int[]
         tempList.remove(tempList.size() - 1);
     }
 }
+```
 
 ## 7. Binary Search on Answer
 
@@ -295,6 +301,7 @@ private boolean canFinish(int[] piles, int h, int speed) {
     
     return true;
 }
+```
 
 ## 8. DFS/BFS on Graphs or Trees
 
@@ -359,3 +366,4 @@ public int shortestPath(int[][] grid, int[] start, int[] destination) {
     
     return -1; // No path found
 }
+```
