@@ -367,3 +367,457 @@ public int shortestPath(int[][] grid, int[] start, int[] destination) {
     return -1; // No path found
 }
 ```
+
+
+# Array Manipulation Problems for Java Interviews
+
+This document covers common array-based algorithm problems that involve complex index manipulations, particularly those with patterns like `i-j-1`. These problems frequently appear in technical interviews for Java positions.
+
+## Problems Involving i-j-1 Pattern and Similar Index Calculations
+
+### 1. Trapping Rain Water
+
+**Problem:** Given n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining.
+
+**Solution:**
+```java
+public int trap(int[] height) {
+    int n = height.length;
+    if (n <= 2) return 0;
+    
+    int[] leftMax = new int[n];
+    int[] rightMax = new int[n];
+    
+    // Fill leftMax array
+    leftMax[0] = height[0];
+    for (int i = 1; i < n; i++) {
+        leftMax[i] = Math.max(leftMax[i-1], height[i]);
+    }
+    
+    // Fill rightMax array
+    rightMax[n-1] = height[n-1];
+    for (int i = n-2; i >= 0; i--) {
+        rightMax[i] = Math.max(rightMax[i+1], height[i]);
+    }
+    
+    // Calculate trapped water
+    int trappedWater = 0;
+    for (int i = 0; i < n; i++) {
+        trappedWater += Math.min(leftMax[i], rightMax[i]) - height[i];
+    }
+    
+    return trappedWater;
+}
+```
+
+**Time Complexity:** O(n)  
+**Space Complexity:** O(n)
+
+### 2. Container With Most Water
+
+**Problem:** Given n non-negative integers a₁, a₂, ..., aₙ, where each represents a point at coordinate (i, aᵢ). n vertical lines are drawn such that the two endpoints of the line i is at (i, aᵢ) and (i, 0). Find two lines, which, together with the x-axis forms a container, such that the container contains the most water.
+
+**Solution:**
+```java
+public int maxArea(int[] height) {
+    int maxWater = 0;
+    int left = 0;
+    int right = height.length - 1;
+    
+    while (left < right) {
+        // Width is right - left (difference between indices)
+        int width = right - left;
+        int area = width * Math.min(height[left], height[right]);
+        maxWater = Math.max(maxWater, area);
+        
+        // Move the pointer with smaller height
+        if (height[left] < height[right]) {
+            left++;
+        } else {
+            right--;
+        }
+    }
+    
+    return maxWater;
+}
+```
+
+**Time Complexity:** O(n)  
+**Space Complexity:** O(1)
+
+### 3. Longest Valid Parentheses
+
+**Problem:** Given a string containing just the characters '(' and ')', find the length of the longest valid (well-formed) parentheses substring.
+
+**Solution:**
+```java
+public int longestValidParentheses(String s) {
+    int maxLen = 0;
+    Stack<Integer> stack = new Stack<>();
+    stack.push(-1); // Base for length calculation
+    
+    for (int i = 0; i < s.length(); i++) {
+        if (s.charAt(i) == '(') {
+            stack.push(i);
+        } else { // ')'
+            stack.pop();
+            if (stack.isEmpty()) {
+                // No matching opening bracket, push current as new base
+                stack.push(i);
+            } else {
+                // Calculate length: current position - position before the valid substring
+                // This is essentially (i - j - 1) + 1 = i - j where j is stack.peek()
+                maxLen = Math.max(maxLen, i - stack.peek());
+            }
+        }
+    }
+    
+    return maxLen;
+}
+```
+
+**Time Complexity:** O(n)  
+**Space Complexity:** O(n)
+
+### 4. Minimum Size Subarray Sum
+
+**Problem:** Given an array of positive integers nums and a positive integer target, return the minimal length of a subarray whose sum is greater than or equal to target. If there is no such subarray, return 0 instead.
+
+**Solution:**
+```java
+public int minSubArrayLen(int target, int[] nums) {
+    int n = nums.length;
+    int left = 0;
+    int sum = 0;
+    int minLength = Integer.MAX_VALUE;
+    
+    for (int right = 0; right < n; right++) {
+        sum += nums[right];
+        
+        // Shrink window from left when condition is met
+        while (sum >= target) {
+            // Update minimum length: (right - left + 1)
+            minLength = Math.min(minLength, right - left + 1);
+            sum -= nums[left++];
+        }
+    }
+    
+    return minLength == Integer.MAX_VALUE ? 0 : minLength;
+}
+```
+
+**Time Complexity:** O(n)  
+**Space Complexity:** O(1)
+
+### 5. Maximum Product Subarray
+
+**Problem:** Given an integer array nums, find a subarray that has the largest product, and return the product.
+
+**Solution:**
+```java
+public int maxProduct(int[] nums) {
+    if (nums == null || nums.length == 0) return 0;
+    
+    int maxSoFar = nums[0];
+    int minEndingHere = nums[0]; // Track minimum because of negative numbers
+    int maxEndingHere = nums[0];
+    
+    for (int i = 1; i < nums.length; i++) {
+        int temp = maxEndingHere;
+        
+        // When multiplying by a negative number, min becomes max and max becomes min
+        maxEndingHere = Math.max(Math.max(nums[i], maxEndingHere * nums[i]), minEndingHere * nums[i]);
+        minEndingHere = Math.min(Math.min(nums[i], temp * nums[i]), minEndingHere * nums[i]);
+        
+        maxSoFar = Math.max(maxSoFar, maxEndingHere);
+    }
+    
+    return maxSoFar;
+}
+```
+
+**Time Complexity:** O(n)  
+**Space Complexity:** O(1)
+
+### 6. Subarrays with Sum K
+
+**Problem:** Given an array of integers nums and an integer k, return the total number of subarrays whose sum equals to k.
+
+**Solution:**
+```java
+public int subarraySum(int[] nums, int k) {
+    HashMap<Integer, Integer> prefixSumCount = new HashMap<>();
+    prefixSumCount.put(0, 1); // Empty subarray with sum 0
+    
+    int count = 0;
+    int prefixSum = 0;
+    
+    for (int i = 0; i < nums.length; i++) {
+        prefixSum += nums[i];
+        
+        // Check if there's a previous prefix sum that can be subtracted to get k
+        // This creates a pattern where we're finding j such that sum(j+1...i) = k
+        if (prefixSumCount.containsKey(prefixSum - k)) {
+            count += prefixSumCount.get(prefixSum - k);
+        }
+        
+        prefixSumCount.put(prefixSum, prefixSumCount.getOrDefault(prefixSum, 0) + 1);
+    }
+    
+    return count;
+}
+```
+
+**Time Complexity:** O(n)  
+**Space Complexity:** O(n)
+
+### 7. Longest Substring Without Repeating Characters
+
+**Problem:** Given a string s, find the length of the longest substring without repeating characters.
+
+**Solution:**
+```java
+public int lengthOfLongestSubstring(String s) {
+    if (s == null || s.length() == 0) return 0;
+    
+    int maxLength = 0;
+    int left = 0;
+    HashMap<Character, Integer> charMap = new HashMap<>();
+    
+    for (int right = 0; right < s.length(); right++) {
+        char currentChar = s.charAt(right);
+        
+        // If already in window, move left pointer to position after the duplicate
+        if (charMap.containsKey(currentChar)) {
+            // Math.max is necessary because the left pointer must always move forward
+            left = Math.max(left, charMap.get(currentChar) + 1);
+        }
+        
+        // Update character position
+        charMap.put(currentChar, right);
+        
+        // Update max length: (right - left + 1) is the current window size
+        maxLength = Math.max(maxLength, right - left + 1);
+    }
+    
+    return maxLength;
+}
+```
+
+**Time Complexity:** O(n)  
+**Space Complexity:** O(min(m, n)) where m is the size of the character set
+
+## More Advanced Array Problems
+
+### 8. Sliding Window Maximum
+
+**Problem:** You are given an array of integers nums, a sliding window of size k moving from the very left to the very right. Return the maximum value in each window.
+
+**Solution:**
+```java
+public int[] maxSlidingWindow(int[] nums, int k) {
+    if (nums == null || nums.length == 0 || k <= 0) {
+        return new int[0];
+    }
+    
+    int n = nums.length;
+    int[] result = new int[n - k + 1];
+    Deque<Integer> deque = new ArrayDeque<>(); // Store indices
+    
+    for (int i = 0; i < n; i++) {
+        // Remove elements outside current window (i-k+1 is the start of window)
+        while (!deque.isEmpty() && deque.peekFirst() < i - k + 1) {
+            deque.pollFirst();
+        }
+        
+        // Remove smaller elements (they'll never be the max)
+        while (!deque.isEmpty() && nums[deque.peekLast()] < nums[i]) {
+            deque.pollLast();
+        }
+        
+        deque.offerLast(i);
+        
+        // Start adding to result when we have a full window
+        if (i >= k - 1) {
+            result[i - k + 1] = nums[deque.peekFirst()];
+        }
+    }
+    
+    return result;
+}
+```
+
+**Time Complexity:** O(n)  
+**Space Complexity:** O(k)
+
+### 9. Next Permutation
+
+**Problem:** Implement next permutation, which rearranges numbers into the lexicographically next greater permutation of numbers. If such an arrangement is not possible, it must rearrange it as the lowest possible order (i.e., sorted in ascending order).
+
+**Solution:**
+```java
+public void nextPermutation(int[] nums) {
+    int n = nums.length;
+    int i = n - 2;
+    
+    // Find the first decreasing element from the end
+    while (i >= 0 && nums[i] >= nums[i + 1]) {
+        i--;
+    }
+    
+    if (i >= 0) {
+        int j = n - 1;
+        // Find the element just larger than nums[i]
+        while (nums[j] <= nums[i]) {
+            j--;
+        }
+        swap(nums, i, j);
+    }
+    
+    // Reverse the subarray after position i
+    reverse(nums, i + 1, n - 1);
+}
+
+private void swap(int[] nums, int i, int j) {
+    int temp = nums[i];
+    nums[i] = nums[j];
+    nums[j] = temp;
+}
+
+private void reverse(int[] nums, int start, int end) {
+    while (start < end) {
+        swap(nums, start++, end--);
+    }
+}
+```
+
+**Time Complexity:** O(n)  
+**Space Complexity:** O(1)
+
+### 10. Merge Intervals
+
+**Problem:** Given an array of intervals where intervals[i] = [starti, endi], merge all overlapping intervals, and return an array of the non-overlapping intervals that cover all the intervals in the input.
+
+**Solution:**
+```java
+public int[][] merge(int[][] intervals) {
+    if (intervals == null || intervals.length <= 1) {
+        return intervals;
+    }
+    
+    // Sort by start time
+    Arrays.sort(intervals, (a, b) -> Integer.compare(a[0], b[0]));
+    
+    List<int[]> result = new ArrayList<>();
+    int[] current = intervals[0];
+    result.add(current);
+    
+    for (int i = 1; i < intervals.length; i++) {
+        // Current interval's end is >= next interval's start -> overlap
+        if (current[1] >= intervals[i][0]) {
+            // Extend current interval's end if needed
+            current[1] = Math.max(current[1], intervals[i][1]);
+        } else {
+            // No overlap, add this as a new interval
+            current = intervals[i];
+            result.add(current);
+        }
+    }
+    
+    return result.toArray(new int[result.size()][]);
+}
+```
+
+**Time Complexity:** O(n log n) due to sorting  
+**Space Complexity:** O(n)
+
+### 11. Jump Game
+
+**Problem:** You are given an integer array nums. You are initially positioned at the array's first index, and each element in the array represents your maximum jump length at that position. Return true if you can reach the last index, or false otherwise.
+
+**Solution:**
+```java
+public boolean canJump(int[] nums) {
+    int maxReachable = 0;
+    
+    for (int i = 0; i < nums.length; i++) {
+        // If current position is beyond what we can reach, return false
+        if (i > maxReachable) {
+            return false;
+        }
+        
+        // Update the furthest position we can reach
+        maxReachable = Math.max(maxReachable, i + nums[i]);
+        
+        // If we can already reach the last index, return true
+        if (maxReachable >= nums.length - 1) {
+            return true;
+        }
+    }
+    
+    return true;
+}
+```
+
+**Time Complexity:** O(n)  
+**Space Complexity:** O(1)
+
+### 12. Maximum Sum Circular Subarray
+
+**Problem:** Given a circular integer array nums of length n, return the maximum possible sum of a non-empty subarray of nums. A circular array means the end of the array connects to the beginning.
+
+**Solution:**
+```java
+public int maxSubarraySumCircular(int[] nums) {
+    if (nums == null || nums.length == 0) return 0;
+    
+    int totalSum = 0;
+    int maxStraightSum = Integer.MIN_VALUE;
+    int minStraightSum = Integer.MAX_VALUE;
+    int currentMax = 0;
+    int currentMin = 0;
+    
+    for (int num : nums) {
+        totalSum += num;
+        
+        // For maximum subarray sum
+        currentMax = Math.max(currentMax + num, num);
+        maxStraightSum = Math.max(maxStraightSum, currentMax);
+        
+        // For minimum subarray sum
+        currentMin = Math.min(currentMin + num, num);
+        minStraightSum = Math.min(minStraightSum, currentMin);
+    }
+    
+    // If all numbers are negative, return the maximum (least negative)
+    if (maxStraightSum < 0) {
+        return maxStraightSum;
+    }
+    
+    // Either the max straight sum or the total sum minus the min straight sum (circular case)
+    return Math.max(maxStraightSum, totalSum - minStraightSum);
+}
+```
+
+**Time Complexity:** O(n)  
+**Space Complexity:** O(1)
+
+## Interview Tips for Array Problems
+
+1. **Two Pointer Technique:** Often a good approach when dealing with array and string problems. Look for opportunities to use this technique when the problem involves searching for a pair, triplet, or subsequence.
+
+2. **Sliding Window:** Especially useful for substring or subarray problems with a constraint.
+
+3. **Prefix Sums:** Great for range sum queries and finding subarrays with a particular sum.
+
+4. **Binary Search:** Can be applied to sorted arrays to reduce time complexity, but also for "search for an answer" problems.
+
+5. **Time and Space Complexity:** Always analyze your solution's efficiency. Interviewers often expect optimal solutions.
+
+6. **Edge Cases:** Consider empty arrays, single-element arrays, and arrays with negative numbers.
+
+7. **Sorting:** Sometimes sorting the array first simplifies the problem significantly.
+
+8. **Monotonic Stack/Queue:** Useful for finding the next greater/smaller element or problems like the histogram area.
+
+Remember that many array problems can be solved using multiple approaches. Practice explaining your thinking process and consider trade-offs between different solutions.
