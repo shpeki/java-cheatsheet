@@ -115,6 +115,48 @@ For each, be ready to talk about:
 
 **When not to use it:** a single service/DB can handle the whole operation (just use a local transaction — simpler); you need strict immediate consistency; the steps aren't cleanly reversible (e.g. money already sent to an external bank rail can't be "un-sent" — compensation there means issuing a new offsetting transaction, not a true rollback, which needs careful design in a payments domain).
 
+### 3.5 Kafka Deep Dive — partitioning, ordering, durability
+
+**Core building blocks**
+- **Topic** — a named stream of events (e.g. `payment-events`)
+- **Partition** — a topic is split into 1+ partitions; each is an ordered, append-only log
+- **Broker** — a Kafka server; a cluster has many, and partitions are spread across them
+- **Producer** — writes messages to a topic
+- **Consumer / Consumer Group** — reads messages; within a group, each partition is read by exactly one consumer, so a group parallelizes reads across partitions
+
+**Partitioning = Kafka's version of sharding**
+Same idea as sharding a database: split data horizontally to scale writes/reads across machines instead of one.
+- Each message has an optional **key** + a value
+- Kafka hashes the key to pick a partition: `hash(key) % number_of_partitions`
+- No key → round-robin/sticky partitioning for even spread
+- More partitions = more parallel consumers, but more overhead and looser ordering
+- **Example for Tide's domain**: key ledger events by `account_id` → all events for one account always land in the same partition (ordered), while different accounts process in parallel across partitions
+
+**Ordering guarantee — scoped, not global**
+Kafka guarantees order **only within a single partition**, never across partitions of a topic.
+- Same key → same partition → strictly ordered
+- Different keys → likely different partitions → no ordering guarantee between them
+- A 1-partition topic is fully ordered but loses all parallelism — a real tradeoff
+- This is why key choice matters: group what must stay ordered relative to each other (e.g. one account's event chain); independent entities (different accounts) don't need cross-ordering
+
+**Durability — guaranteed, but only if configured correctly**
+Kafka is a distributed, replicated commit log — written to disk, not just memory.
+- **Replication factor** — each partition is copied across N brokers (commonly 3): one "leader," others "followers"
+- **`acks` on the producer** — the key durability lever:
+  - `acks=0` — no confirmation waited for → fastest, but messages can be silently lost
+  - `acks=1` — waits for the leader only → lost if the leader dies before followers replicate
+  - `acks=all`/`-1` — waits for the leader + in-sync replicas → survives leader loss, strongest guarantee
+- **`min.insync.replicas`** — pairs with `acks=all`: requires N replicas to have the data before the write counts as successful, or the producer gets an error instead of a false "success"
+- **Combine `acks=all` + `min.insync.replicas≥2` + `replication.factor=3`** → message survives the loss of any one broker
+- **Retention** — Kafka keeps messages for a configured time/size window (not "until consumed"), enabling replay; **log compaction** mode keeps only the latest value per key forever (good for "current state" topics)
+
+**Delivery semantics — a deliberate configuration choice, not automatic**
+- **At-most-once** — never duplicated, but can be lost (commit offset before processing; crash mid-processing = message gone)
+- **At-least-once** — never lost, but can be duplicated (commit offset after processing; crash after processing but before commit = reprocessed on restart) — most common default
+- **Exactly-once (EOS)** — via **idempotent producers** (dedupe retried writes with sequence numbers) + the **transactional API** (atomically write to multiple partitions/topics and commit consumer offsets as one unit)
+
+**Interview-ready summary**: "Kafka guarantees order per-partition, not globally, and guarantees no message loss *if* configured with `acks=all`, adequate replication, and `min.insync.replicas` — but at-least-once vs exactly-once is a deliberate configuration choice. For a financial ledger, I'd want exactly-once semantics via idempotent producers + Kafka transactions, keyed by account ID for per-account ordering."
+
 ---
 
 ## 4. Domain Knowledge — Accounting Basics (relevant since Tide = banking + accounting for SMEs)
@@ -258,7 +300,7 @@ Base these on your actual work on the **Lounge project at EGT Digital** — conc
 ## 9. Day-Before Checklist
 - [ ] Re-read this doc, focus on the tech stack table and DORA definitions
 - [ ] Review the Banking (UK & EU) section — ClearBank/PPT structure, FSCS, FPS/BACS/CHAPS, SEPA, PSD2
-- [ ] Review the saga pattern (3.4) and the architecture hypothesis (Section 6) — practice explaining both out loud
+- [ ] Review the saga pattern (3.4), Kafka deep dive (3.5), and the architecture hypothesis (Section 6) — practice explaining each out loud
 - [ ] Rehearse 3 STAR stories out loud (timed to ~2 min each)
 - [ ] Do one practice system design (pick the ledger or invoicing prompt above) with pen and paper, 30 min
 - [ ] Do one cold code-review practice on a Java/Spring Boot snippet, 20 min
