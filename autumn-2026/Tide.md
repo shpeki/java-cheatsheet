@@ -73,6 +73,29 @@ Overall timeline reported: ~3–4 weeks, fully remote.
 
 ## 3. Technical Prep
 
+### 3.0 Distributed Systems Fundamentals — the foundation under everything else in this section
+
+**Definition:** a set of independent computers that work together and appear to users as a single coherent system, communicating and coordinating only by passing messages over a network — no shared memory, no shared clock.
+
+**Why it's fundamentally harder than a single machine:**
+- **No shared clock** — nodes can't perfectly agree on "what happened first," which is why global ordering across machines is hard (this is exactly why Kafka only guarantees order per-partition, not globally)
+- **Partial failure** — one node can crash while others keep running; the system must keep working or fail gracefully, not go down as a unit
+- **Network unreliability** — messages can be delayed, dropped, duplicated, or reordered; you can't always distinguish "slow" from "dead"
+- **No shared memory** — nodes only know what they're told via messages, so keeping data consistent takes real coordination protocols, not a shared variable read
+
+**Core concepts that everything else in this section builds on:**
+- **Consistency models** — strong consistency (everyone sees the same data instantly) vs. eventual consistency (nodes converge over time); this is CAP theorem territory — under a network partition, you must choose Consistency or Availability, not both
+- **Consensus** — getting multiple nodes to agree on a value despite failures (Raft, Paxos — used internally by things like Kafka's controller election, etcd, ZooKeeper)
+- **Replication** — copying data across nodes for durability/availability (Kafka's replication factor)
+- **Partitioning/sharding** — splitting data across nodes for scale (Kafka's partitions)
+- **Coordination & locking** — distributed locks, leader election, ensuring only one node does a critical task at a time
+- **Idempotency & exactly-once semantics** — needed because networks retry/duplicate/drop messages, so operations must be safe to repeat
+- **Failure detection & recovery** — heartbeats, timeouts, retries, circuit breakers
+
+**Why this matters for Tide specifically:** a banking ledger split across microservices, multiple banking partners, and multiple countries is a textbook distributed systems problem — money must never be double-counted or lost despite machines failing and networks being unreliable. The saga pattern (3.4) exists because you can't do one ACID transaction across services on different machines; Kafka's per-partition ordering (3.5) exists because there's no global clock; exactly-once semantics matter because networks duplicate/drop messages.
+
+**Tight definition to give if asked directly:** *"A system composed of multiple independent nodes that communicate over a network to achieve a common goal, and that has to handle partial failure, network unreliability, and the lack of a shared clock or memory as first-class concerns rather than edge cases."*
+
 ### 3.1 System Design — practice designing systems like Tide's actual domain
 Practice out loud, on a whiteboard/doc, for each:
 - Design a **ledger service** that records money movements for millions of SME accounts (double-entry, idempotency, auditability)
@@ -300,7 +323,7 @@ Base these on your actual work on the **Lounge project at EGT Digital** — conc
 ## 9. Day-Before Checklist
 - [ ] Re-read this doc, focus on the tech stack table and DORA definitions
 - [ ] Review the Banking (UK & EU) section — ClearBank/PPT structure, FSCS, FPS/BACS/CHAPS, SEPA, PSD2
-- [ ] Review the saga pattern (3.4), Kafka deep dive (3.5), and the architecture hypothesis (Section 6) — practice explaining each out loud
+- [ ] Review distributed systems fundamentals (3.0), the saga pattern (3.4), Kafka deep dive (3.5), and the architecture hypothesis (Section 6) — practice explaining each out loud
 - [ ] Rehearse 3 STAR stories out loud (timed to ~2 min each)
 - [ ] Do one practice system design (pick the ledger or invoicing prompt above) with pen and paper, 30 min
 - [ ] Do one cold code-review practice on a Java/Spring Boot snippet, 20 min
