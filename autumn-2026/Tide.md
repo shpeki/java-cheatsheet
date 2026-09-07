@@ -215,6 +215,21 @@ Kafka is a distributed, replicated commit log — written to disk, not just memo
 
 **How to answer if asked about your monitoring experience**: "At EGT I used Grafana [+ metrics source] for dashboards and Kibana/ELK for logs — I understand DataDog plays a similar role but as a managed, unified platform with built-in SLO/error-budget tracking rather than assembled from separate open-source pieces." Honest, accurate, and shows the underlying concepts transfer even though the specific tool differs.
 
+### 3.7 jOOQ — type-safe SQL, and how it compares to an ORM
+
+**What it is**: jOOQ (Java Object Oriented Querying) is a Java library for writing type-safe SQL queries directly in Java code, generated from your actual database schema.
+- jOOQ **generates Java classes from your DB schema** (tables, columns, types) — you write queries as Java method calls that mirror the schema instead of raw SQL strings
+- Conceptually: instead of `"SELECT * FROM accounts WHERE balance > 100"` as a string, you write something like `select().from(ACCOUNTS).where(ACCOUNTS.BALANCE.gt(100))`, where `ACCOUNTS`/`BALANCE` are real generated Java objects, not string literals
+- If a column is renamed/removed in the DB, the code **fails to compile** rather than failing silently at runtime — compile-time safety for SQL is the core value
+
+**vs. plain JDBC**: JDBC = raw SQL strings by hand, no compile-time checking. jOOQ generates the boilerplate and catches schema mismatches at build time.
+
+**vs. an ORM like Hibernate/JPA (the more important comparison)**: JPA/Hibernate maps *objects* to tables and tries to hide SQL behind an entity model (you write JPQL or use entities, and the ORM decides what SQL to generate). jOOQ takes the opposite philosophy — it **embraces SQL rather than abstracting it away**: you're still thinking in SQL-like terms, just via a type-safe, fluent Java API, with full control over the exact query generated. This matters most for complex queries (joins, aggregations, window functions), where ORMs can silently generate inefficient or unpredictable SQL (classic N+1 problem).
+
+**Why this fits Tide's stack**: Java/Spring Boot + PostgreSQL (Aurora/RDS) + jOOQ is a deliberate choice for a domain like a **financial ledger** — you want precise control over exactly what SQL runs: predictable query plans, exact transaction boundaries, no ORM "magic" issuing surprise extra queries or suboptimal joins. jOOQ gives Spring Boot services that SQL-level control while staying type-safe and testable, a sensible fit for something as correctness-critical as money movements.
+
+**Interview-ready summary**: "jOOQ is a type-safe SQL builder generated from the schema — unlike Hibernate/JPA, it doesn't hide SQL behind an object-mapping layer, it embraces it, so you get compile-time safety plus full control over the exact query, which matters a lot for a system like a ledger where predictable, precise SQL beats ORM convenience."
+
 ---
 
 ## 4. Domain Knowledge — Accounting Basics (relevant since Tide = banking + accounting for SMEs)
@@ -358,7 +373,7 @@ Base these on your actual work on the **Lounge project at EGT Digital** — conc
 ## 9. Day-Before Checklist
 - [ ] Re-read this doc, focus on the tech stack table and DORA definitions
 - [ ] Review the Banking (UK & EU) section — ClearBank/PPT structure, FSCS, FPS/BACS/CHAPS, SEPA, PSD2
-- [ ] Review distributed systems fundamentals (3.0), Semgrep vs. SonarQube (3.3b), the saga pattern (3.4), Kafka deep dive (3.5), observability/DataDog vs. Grafana (3.6), and the architecture hypothesis (Section 6) — practice explaining each out loud
+- [ ] Review distributed systems fundamentals (3.0), Semgrep vs. SonarQube (3.3b), the saga pattern (3.4), Kafka deep dive (3.5), observability/DataDog vs. Grafana (3.6), jOOQ vs. Hibernate/JPA (3.7), and the architecture hypothesis (Section 6) — practice explaining each out loud
 - [ ] Rehearse 3 STAR stories out loud (timed to ~2 min each)
 - [ ] Do one practice system design (pick the ledger or invoicing prompt above) with pen and paper, 30 min
 - [ ] Do one cold code-review practice on a Java/Spring Boot snippet, 20 min
