@@ -71,6 +71,39 @@ Overall timeline reported: ~3–4 weeks, fully remote.
 
 ---
 
+## 2b. HR / Recruiter Screen Prep — what to lead with to advance to technical
+
+The recruiter screen isn't evaluating technical depth — it's checking motivation fit, headline experience match, logistics, and no obvious dealbreakers, so the aim is to sound credible and low-risk, not to go deep.
+
+### 1. Lead with the two things they're most anxious about for an EM hire
+- **Direct people management experience** — the JD explicitly calls out "experience directly managing people," not just tech lead. State plainly and early whether/how you've managed people, even if informally (leading a team, owning delivery, mentoring). If your title has been "lead developer" rather than "manager," be upfront about the actual scope of what you did — recruiters are trained to flag this mismatch, so don't let them discover it later.
+- **10+ years hands-on backend experience in a similar stack** — mention Java/Spring Boot specifically (matches their stack) alongside your broader experience; concrete tech overlap reduces perceived risk.
+
+### 2. A tight "why Tide" answer
+A generic answer ("interesting company," "good opportunity") signals low genuine interest. A strong, specific answer:
+- Drawn to the domain — real financial infrastructure at scale (ledger, payments, multi-country regulatory complexity) rather than a generic CRUD product
+- Interested that it's a hands-on EM role (design/coding/coaching split, not pure people management)
+- Mention you've looked into their actual setup (EMI + ClearBank/PPT structure) — signals real interest without over-showing technical depth prematurely; save deep technical talk for the technical round
+
+### 3. One concrete delivery/impact story, kept short
+30–60 seconds: what you owned (e.g. on Lounge), roughly the scale (users/traffic, team size), and one outcome. Recruiters aren't evaluating technical depth here, just whether you sound credible and articulate about your own impact.
+
+### 4. Be upfront and confident on logistics — often the actual gatekeeping content
+- **Salary expectations** — know your number before the call; if asked, give a range anchored near/within their posted €68,400–€101,250 band rather than dodging
+- **Notice period / availability**
+- **Location/remote flexibility** — role is Sofia-based, hybrid ("in-person gatherings encouraged") — be clear about your situation
+- **Work authorization**, if relevant
+
+### 5. Come with 1–2 good questions
+Even at this stage: "what does the interview process look like from here" or "what's the biggest challenge the team the EM would join is facing right now" — signals engagement and gives you calibration info for later rounds.
+
+### What to avoid
+- Don't go deep into technical architecture opinions here (Kafka/saga/jOOQ/Aurora, etc.) — save that for the technical/system-design round; over-indexing on jargon in an HR screen can read as unfocused
+- Don't be vague on the people-management question — the single biggest fit risk for this specific title
+- Don't leave salary as a total unknown — a recruiter who can't get a number from you may deprioritize moving you forward simply due to uncertainty
+
+---
+
 ## 3. Technical Prep
 
 ### 3.0 Distributed Systems Fundamentals — the foundation under everything else in this section
@@ -397,6 +430,7 @@ Base these on your actual work on the **Lounge project at EGT Digital** — conc
 ---
 
 ## 9. Day-Before Checklist
+- [ ] If the HR/recruiter screen hasn't happened yet: review Section 2b — people-management answer, "why Tide," salary number, logistics
 - [ ] Re-read this doc, focus on the tech stack table and DORA definitions
 - [ ] Review the Banking (UK & EU) section — ClearBank/PPT structure, FSCS, FPS/BACS/CHAPS, SEPA, PSD2
 - [ ] Review distributed systems fundamentals (3.0), Semgrep vs. SonarQube (3.3b), the saga pattern (3.4), Kafka deep dive (3.5), observability/DataDog vs. Grafana (3.6), jOOQ vs. Hibernate/JPA (3.7), Aurora vs. vanilla PostgreSQL (3.8), and the architecture hypothesis (Section 6) — practice explaining each out loud
