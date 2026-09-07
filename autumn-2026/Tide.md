@@ -124,6 +124,23 @@ For each, be ready to talk about:
 - Practice reviewing a Java (Spring Boot) snippet cold: look for — null safety, exception handling, SOLID violations, missing tests, security issues (SQL injection, secrets in code), performance (N+1 queries, unnecessary loops), readability/naming, missing logging/observability hooks
 - Be ready to explain *why* each comment matters, not just flag it — they're evaluating your reasoning and communication as much as the catch
 
+### 3.3b Semgrep — static analysis, and how it compares to SonarQube (EGT's tool)
+
+**What Semgrep is**: a static analysis tool (SAST — Static Application Security Testing) that finds bugs, security issues, and code-quality problems by scanning source code against pattern-based rules, without running the code.
+- You write (or use pre-built) rules that look like the code pattern to catch — e.g. "any place calling `exec()` with unsanitized input," "SQL built via string concatenation instead of parameterized queries," "hardcoded secrets/API keys"
+- It's syntax-aware, not just text-matching — understands functions, method calls, imports, so it isn't fooled by formatting differences
+- Works across many languages (Java, Python, JS, Go, etc.) with one tool
+- Typically wired into the **PR/CI pipeline** — blocks or flags a PR automatically before merge, rather than relying on a human reviewer to remember every rule
+
+**How it compares to SonarQube**: both are static analysis tools that run in CI and both catch security vulnerabilities, code smells, and quality issues — conceptually the same job. The differences are more about approach and depth:
+- **SonarQube** is broader by default — out of the box it covers code quality metrics (complexity, duplication, maintainability "technical debt" scoring), test coverage integration, and a large built-in rule catalog per language, with a dashboard/quality-gate model (a PR can be blocked if it drops below a quality threshold)
+- **Semgrep** leans more toward being lightweight and highly customizable for **security-specific, custom pattern rules** — teams often like it because you can write a very specific rule fast (e.g. "never call this internal deprecated wrapper") and it runs quickly in CI without needing a persistent server/dashboard the way SonarQube typically does
+- In practice, some orgs run both: SonarQube for overall code-quality gates, Semgrep for fast, custom security-pattern checks — they're not mutually exclusive
+
+**Why this combination (Semgrep + strong test culture) matters at Tide**: it signals a "move fast without breaking things" culture — new hires can ship to production within their first week because automated gates (Semgrep + tests) catch the well-known classes of mistakes before a human even reviews the diff, rather than relying purely on senior engineers catching everything manually.
+
+**How to answer if asked**: "At EGT we used SonarQube for static analysis — I understand Semgrep serves a similar purpose but is more lightweight and rule-driven, well suited for fast, custom security checks in CI. The underlying goal — catching quality/security issues automatically before human review — is the same, just a different tool for it."
+
 ### 3.4 Saga Pattern — likely to come up given their event-driven stack
 
 **What it is:** a way to manage data consistency across multiple microservices/databases without a distributed (two-phase-commit) transaction. A business operation is broken into a sequence of local transactions, one per service; each commits locally and publishes an event that triggers the next step.
@@ -341,7 +358,7 @@ Base these on your actual work on the **Lounge project at EGT Digital** — conc
 ## 9. Day-Before Checklist
 - [ ] Re-read this doc, focus on the tech stack table and DORA definitions
 - [ ] Review the Banking (UK & EU) section — ClearBank/PPT structure, FSCS, FPS/BACS/CHAPS, SEPA, PSD2
-- [ ] Review distributed systems fundamentals (3.0), the saga pattern (3.4), Kafka deep dive (3.5), observability/DataDog vs. Grafana (3.6), and the architecture hypothesis (Section 6) — practice explaining each out loud
+- [ ] Review distributed systems fundamentals (3.0), Semgrep vs. SonarQube (3.3b), the saga pattern (3.4), Kafka deep dive (3.5), observability/DataDog vs. Grafana (3.6), and the architecture hypothesis (Section 6) — practice explaining each out loud
 - [ ] Rehearse 3 STAR stories out loud (timed to ~2 min each)
 - [ ] Do one practice system design (pick the ledger or invoicing prompt above) with pen and paper, 30 min
 - [ ] Do one cold code-review practice on a Java/Spring Boot snippet, 20 min
