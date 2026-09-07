@@ -130,7 +130,46 @@ Tide's engineering org exists to serve this domain reliably at scale. If asked "
 
 ---
 
-## 5. Engineering Management / Leadership Prep
+## 5. Domain Knowledge — Banking (UK & EU) *(flagged by a contact at Tide as a study priority)*
+
+Tide isn't itself a licensed bank — knowing this structure cold will make you sound credible in a domain conversation.
+
+### How Tide is actually regulated (fact-checked, current)
+- Tide is a **business financial platform**, not a bank. It's regulated by the **FCA** as an **Electronic Money Institution (EMI)** (FRN 900843), plus a separate FRN for credit/insurance broking (718743).
+- Customer funds sit with banking partners, not Tide itself:
+  - **ClearBank Ltd** — powers Tide's current & savings accounts. ClearBank holds the actual banking license (authorized by the **PRA** and regulated by the **FCA**+PRA). Deposits get **FSCS protection up to £120,000** per depositor because they sit with a real bank.
+  - **PrePay Technologies Ltd (PPT)** — powers Tide's e-money accounts (sort code 23-69-72); funds sit in a **safeguarding account** (not FSCS-protected — safeguarding vs. deposit insurance is an important distinction).
+  - Together, Tide + ClearBank branded this "ClearBank Tide Business Banking" — Tide owns the UX/product, ClearBank owns the license, compliance, and payment-scheme access.
+- **Why this matters for engineering**: your team's services likely integrate with these partner banks' APIs for ledger movements, payment execution, and safeguarding — reconciliation between Tide's internal ledger and the partner bank's records is a real, concrete engineering problem here, not hypothetical.
+
+### UK banking fundamentals to know
+- **Regulators**: FCA (conduct), PRA (prudential/bank safety)
+- **Payment rails**: Faster Payments Service (FPS) — near-instant transfers; BACS — batch payments (e.g. payroll, direct debits), 3-day cycle; CHAPS — same-day high-value transfers
+- **Account identifiers**: sort code (6 digits, bank/branch) + account number (8 digits)
+- **Deposit protection**: FSCS — protects deposits at licensed banks up to £85,000 (up to £120,000 temporarily for some cases/joint accounts) — only applies where funds sit with a real bank, not under an EMI's own safeguarding
+- **Open Banking (UK)**: framework (born from a CMA order on the 9 largest UK banks, aligned with PSD2) letting regulated third parties access account data (AIS) or initiate payments (PIS) via standardized APIs, with customer consent
+- **KYC/AML**: Money Laundering Regulations 2017; business banking requires Companies House checks, UBO (ultimate beneficial owner) identification, ongoing transaction monitoring
+
+### EU banking fundamentals to know
+- **Regulators**: ECB (eurozone monetary/prudential oversight), EBA (EU-wide banking standards), national regulators per member state
+- **SEPA (Single Euro Payments Area)**: standardized euro transfers across ~36 countries — SEPA Credit Transfer (standard transfers) and SEPA Direct Debit (recurring collections), all IBAN-based
+- **PSD2 (Payment Services Directive 2)**: EU-wide equivalent/origin of Open Banking — mandates Strong Customer Authentication (SCA, i.e. 2FA on payments) and API access for licensed Third Party Providers (TPPs)
+- **E-Money Directive (EMD2)**: the legal basis for EMI licenses (what Tide itself operates under)
+- **Post-Brexit note**: UK EMI/banking licenses no longer "passport" into the EU — a UK fintech operating in EU markets (Germany, France per the job posting) needs a separate EU entity/license, which is a real cross-border compliance/engineering concern (data residency, separate ledgers per jurisdiction, etc.)
+- **GDPR**: overlaps with banking — strict rules on handling customer financial and personal data, relevant to any service design questions involving PII
+
+### How to actually use this in the interview
+- If asked "why Tide" or about domain interest: mention you understand Tide operates as an EMI on top of partner banks (ClearBank/PPT), and that this "platform over regulated infrastructure" model creates interesting engineering problems (ledger reconciliation across systems, safeguarding accuracy, multi-jurisdiction compliance for UK vs. EU entities)
+- If a system-design prompt touches payments: mention the real rails (FPS/BACS/CHAPS for UK, SEPA for EU) rather than generic "payment processor" language — it signals you did your homework
+- Don't over-invest — you're not being hired as a compliance officer. The goal is fluency, not expertise: enough to ask smart questions and not sound lost when the domain comes up.
+
+Sources:
+- [Is Tide a bank? | Tide Business](https://www.tide.co/support/joining/what-is-tide/is-tide-a-bank/)
+- [How Tide and ClearBank are delivering competition and innovation in SME banking](https://clear.bank/learn/insights/how-tide-and-clearbank-are-delivering-competition-and-innovation-in-sme-banking)
+
+---
+
+## 6. Engineering Management / Leadership Prep
 
 ### DORA Metrics — know these cold, you'll likely be asked how you've used them
 The four key DevOps Research and Assessment metrics:
@@ -169,15 +208,16 @@ Base these on your actual work on the **Lounge project at EGT Digital** — conc
 
 ---
 
-## 6. Logistics & Comp Notes
+## 7. Logistics & Comp Notes
 - Salary range: €68,400–€101,250 gross/year, open to negotiation based on experience
 - Benefits: 25 days annual leave, 3 paid volunteering/L&D days, extended parental leave, €500/yr L&D budget, health & dental insurance, wellbeing platform, Multisport card, food vouchers, WFH equipment allowance, flexible remote work, sabbatical leave, share options
 - Work model: hybrid — remote supported, but in-person gatherings encouraged (Sofia office/tech hub)
 
 ---
 
-## 7. Day-Before Checklist
+## 8. Day-Before Checklist
 - [ ] Re-read this doc, focus on the tech stack table and DORA definitions
+- [ ] Review the Banking (UK & EU) section — ClearBank/PPT structure, FSCS, FPS/BACS/CHAPS, SEPA, PSD2
 - [ ] Rehearse 3 STAR stories out loud (timed to ~2 min each)
 - [ ] Do one practice system design (pick the ledger or invoicing prompt above) with pen and paper, 30 min
 - [ ] Do one cold code-review practice on a Java/Spring Boot snippet, 20 min
