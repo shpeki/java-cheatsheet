@@ -101,6 +101,20 @@ For each, be ready to talk about:
 - Practice reviewing a Java (Spring Boot) snippet cold: look for — null safety, exception handling, SOLID violations, missing tests, security issues (SQL injection, secrets in code), performance (N+1 queries, unnecessary loops), readability/naming, missing logging/observability hooks
 - Be ready to explain *why* each comment matters, not just flag it — they're evaluating your reasoning and communication as much as the catch
 
+### 3.4 Saga Pattern — likely to come up given their event-driven stack
+
+**What it is:** a way to manage data consistency across multiple microservices/databases without a distributed (two-phase-commit) transaction. A business operation is broken into a sequence of local transactions, one per service; each commits locally and publishes an event that triggers the next step.
+
+**Failure handling:** instead of a rollback, a saga runs **compensating transactions** — steps that undo the effect of previously completed steps, in reverse order. Example: placing a payment = (1) reserve funds in the ledger → (2) call the external payment rail → (3) post the final ledger entry. If step 2 fails, a compensating transaction releases the funds reserved in step 1.
+
+**Two implementation styles:**
+- **Choreography** — services react to each other's events, no central coordinator. Simple for a few steps, hard to trace as the chain grows.
+- **Orchestration** — a central orchestrator explicitly sequences each participant and drives compensation on failure. Easier to reason about/monitor, adds a coordinating component.
+
+**When to use it:** a transaction spans multiple services/databases, eventual (not strict immediate) consistency is acceptable, and you're already event-driven (Kafka/SNS+SQS — like Tide).
+
+**When not to use it:** a single service/DB can handle the whole operation (just use a local transaction — simpler); you need strict immediate consistency; the steps aren't cleanly reversible (e.g. money already sent to an external bank rail can't be "un-sent" — compensation there means issuing a new offsetting transaction, not a true rollback, which needs careful design in a payments domain).
+
 ---
 
 ## 4. Domain Knowledge — Accounting Basics (relevant since Tide = banking + accounting for SMEs)
@@ -169,7 +183,33 @@ Sources:
 
 ---
 
-## 6. Engineering Management / Leadership Prep
+## 6. How Tide's Architecture Is Likely Organized (researched facts + my informed hypothesis)
+
+### Confirmed, from Tide's own postings/docs
+- **Org model**: domain-aligned, full-stack teams owning products end-to-end, each an EM+PM pair; engineers self-organize, standards shared via "Communities of Practice" rather than a central architecture mandate
+- **Accounts Platform team**: owns "the platform layer at the centre of Tide's financial infrastructure" — the ledger is the authoritative record for all member finances. It currently also owns account opening/lifecycle, regulatory compliance functions, and member statements.
+- **The ledger is actively being carved out into its own dedicated team**, separate from the rest of Accounts Platform, specifically because it needs different characteristics: high-volume, high-criticality, strict consistency, its own SLOs/on-call. (Good, concrete thing to reference/ask about in-interview — shows you did real homework, not just generic prep.)
+- **Multi-jurisdiction**: the ledger supports UK, India, Germany, and France **through different banking partners per market** (UK confirmed as ClearBank + PrePay Technologies — see Section 5)
+- **Tech stack for this domain**: Java/Spring Boot microservices, AWS (Aurora PostgreSQL), Docker/Terraform, event-driven/async processing, SLO-backed monitoring (DataDog and/or Coralogix depending on team)
+
+### My hypothesis on the likely shape (not confirmed — my own inference, useful for framing questions/answers)
+- **Ledger service** — append-only, double-entry, strongly consistent, Aurora/Postgres-backed with careful transaction isolation — the "must never be wrong" core
+- **Accounts/lifecycle service** — KYC/onboarding, account opening/closing/status — talks to the ledger but isn't the ledger
+- **Payments services (plural, likely per rail/market)** — UK (FPS/BACS/CHAPS) vs EU (SEPA), each talking to the relevant banking-partner API and emitting events back for ledger reconciliation
+- **Banking-partner integration layer** — abstracts ClearBank, PPT, and EU partner(s) so the rest of the platform doesn't hardcode per-partner logic
+- **Event backbone (Kafka + SNS/SQS)** connecting all of it — e.g. "payment executed" flows from a payments service into the ledger, and out to statements/notifications/BI
+- **Reconciliation as a first-class process** — continuously comparing internal ledger state against each banking partner's actual records, flagging drift (this is the saga/compensating-transaction territory from Section 3.4)
+- **Compliance/regulatory services**, likely split per jurisdiction given UK vs EU regulatory divergence post-Brexit, consuming ledger/account events for AML monitoring and audit trails
+
+**How to use this**: don't present the hypothesis as fact — frame it as "here's how I'd guess this is structured, curious how close that is" when asking your questions; it signals systems thinking without overclaiming insider knowledge.
+
+Sources:
+- [Engineering Manager - Accounts Platform | Tide](https://job-boards.greenhouse.io/tide/jobs/7780973003)
+- [Is Tide a bank? | Tide Business](https://www.tide.co/support/joining/what-is-tide/is-tide-a-bank/)
+
+---
+
+## 7. Engineering Management / Leadership Prep
 
 ### DORA Metrics — know these cold, you'll likely be asked how you've used them
 The four key DevOps Research and Assessment metrics:
@@ -208,16 +248,17 @@ Base these on your actual work on the **Lounge project at EGT Digital** — conc
 
 ---
 
-## 7. Logistics & Comp Notes
+## 8. Logistics & Comp Notes
 - Salary range: €68,400–€101,250 gross/year, open to negotiation based on experience
 - Benefits: 25 days annual leave, 3 paid volunteering/L&D days, extended parental leave, €500/yr L&D budget, health & dental insurance, wellbeing platform, Multisport card, food vouchers, WFH equipment allowance, flexible remote work, sabbatical leave, share options
 - Work model: hybrid — remote supported, but in-person gatherings encouraged (Sofia office/tech hub)
 
 ---
 
-## 8. Day-Before Checklist
+## 9. Day-Before Checklist
 - [ ] Re-read this doc, focus on the tech stack table and DORA definitions
 - [ ] Review the Banking (UK & EU) section — ClearBank/PPT structure, FSCS, FPS/BACS/CHAPS, SEPA, PSD2
+- [ ] Review the saga pattern (3.4) and the architecture hypothesis (Section 6) — practice explaining both out loud
 - [ ] Rehearse 3 STAR stories out loud (timed to ~2 min each)
 - [ ] Do one practice system design (pick the ledger or invoicing prompt above) with pen and paper, 30 min
 - [ ] Do one cold code-review practice on a Java/Spring Boot snippet, 20 min
