@@ -230,6 +230,32 @@ Kafka is a distributed, replicated commit log — written to disk, not just memo
 
 **Interview-ready summary**: "jOOQ is a type-safe SQL builder generated from the schema — unlike Hibernate/JPA, it doesn't hide SQL behind an object-mapping layer, it embraces it, so you get compile-time safety plus full control over the exact query, which matters a lot for a system like a ledger where predictable, precise SQL beats ORM convenience."
 
+### 3.8 Aurora PostgreSQL vs. Vanilla PostgreSQL
+
+**Yes — Aurora is fully managed by AWS.** It's AWS's own database engine, **wire-compatible with PostgreSQL** (same SQL, drivers, client tools, most extensions), but AWS rebuilt the storage/replication layer underneath from scratch — not literally "PostgreSQL on a bigger box." This is the key distinction from **RDS for PostgreSQL**, which *is* literally vanilla PostgreSQL, just managed (automated backups/patching/failover) — Aurora is a separate, AWS-engineered storage engine behind a PostgreSQL-compatible interface.
+
+**Storage layer**
+- Vanilla PostgreSQL: data on a single storage volume attached to one instance; replicas copy the whole data files
+- Aurora: storage is a separate, distributed layer — data auto-replicated **6 ways across 3 Availability Zones**; only the write-ahead log (WAL) ships to storage nodes rather than full data pages ("the log is the database" — Aurora's core innovation)
+
+**Replication & failover**
+- Vanilla PostgreSQL: read replicas stream actual data; failover means promoting a replica — slower, some risk of data lag
+- Aurora: replicas share the same underlying distributed storage, so no re-copying needed — failover is typically much faster (often under 30 seconds), up to 15 read replicas with minimal lag
+
+**Scaling**
+- Vanilla PostgreSQL: storage scaling is often manual (resize volume, migrate disks)
+- Aurora: storage auto-scales up to 128TB with no manual intervention; **Aurora Serverless** also auto-scales compute up/down with load, on a separate storage/compute billing model
+
+**Availability & durability**
+- Aurora tolerates losing 2 of 6 storage copies without affecting writes, and 3 without affecting reads — stronger built-in durability than a standard single-node Postgres setup unless you build that redundancy yourself
+
+**Backups**
+- Aurora does continuous, incremental backups to S3 with minimal performance impact; vanilla Postgres backup strategies (pg_dump, WAL archiving) need more manual setup for comparable point-in-time recovery
+
+**What stays the same**: because Aurora is wire-compatible, application code, the ORM/query layer (jOOQ here), SQL syntax, and most extensions work unchanged — from an app developer's view it mostly *feels* like PostgreSQL. Differences live almost entirely at the infra/ops layer (durability, failover speed, scaling) — exactly why Tide's stack lists "PostgreSQL via RDS **or** Aurora": less-critical services may use plain RDS Postgres, while more critical ones (very plausibly the ledger) lean on Aurora for stronger durability/failover.
+
+**Interview-ready summary**: "For a high-criticality, high-volume system like a ledger, I'd lean toward Aurora over vanilla RDS Postgres specifically for its faster failover and stronger built-in durability (6 copies across 3 AZs), since that reduces operational risk of a single point of failure where correctness and availability both matter."
+
 ---
 
 ## 4. Domain Knowledge — Accounting Basics (relevant since Tide = banking + accounting for SMEs)
@@ -373,7 +399,7 @@ Base these on your actual work on the **Lounge project at EGT Digital** — conc
 ## 9. Day-Before Checklist
 - [ ] Re-read this doc, focus on the tech stack table and DORA definitions
 - [ ] Review the Banking (UK & EU) section — ClearBank/PPT structure, FSCS, FPS/BACS/CHAPS, SEPA, PSD2
-- [ ] Review distributed systems fundamentals (3.0), Semgrep vs. SonarQube (3.3b), the saga pattern (3.4), Kafka deep dive (3.5), observability/DataDog vs. Grafana (3.6), jOOQ vs. Hibernate/JPA (3.7), and the architecture hypothesis (Section 6) — practice explaining each out loud
+- [ ] Review distributed systems fundamentals (3.0), Semgrep vs. SonarQube (3.3b), the saga pattern (3.4), Kafka deep dive (3.5), observability/DataDog vs. Grafana (3.6), jOOQ vs. Hibernate/JPA (3.7), Aurora vs. vanilla PostgreSQL (3.8), and the architecture hypothesis (Section 6) — practice explaining each out loud
 - [ ] Rehearse 3 STAR stories out loud (timed to ~2 min each)
 - [ ] Do one practice system design (pick the ledger or invoicing prompt above) with pen and paper, 30 min
 - [ ] Do one cold code-review practice on a Java/Spring Boot snippet, 20 min
