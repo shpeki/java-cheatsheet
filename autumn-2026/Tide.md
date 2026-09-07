@@ -180,6 +180,24 @@ Kafka is a distributed, replicated commit log — written to disk, not just memo
 
 **Interview-ready summary**: "Kafka guarantees order per-partition, not globally, and guarantees no message loss *if* configured with `acks=all`, adequate replication, and `min.insync.replicas` — but at-least-once vs exactly-once is a deliberate configuration choice. For a financial ledger, I'd want exactly-once semantics via idempotent producers + Kafka transactions, keyed by account ID for per-account ordering."
 
+### 3.6 Observability — DataDog vs. Grafana, and Automated SLOs
+
+**DataDog vs. a Grafana-based stack (like EGT's)**
+- **Grafana is a visualization layer only** — it doesn't collect or store metrics itself; it queries a separate backend (Prometheus, InfluxDB, Loki, etc.) and renders dashboards from that data
+- **DataDog is the whole pipeline in one product** — its own lightweight agent runs on each host/container and collects metrics, logs, and traces itself, stores them, and provides dashboards, alerting, and APM (distributed tracing) all under one roof — less "glue infra" for a platform team to assemble and run
+- The real difference is **buy vs. build/maintain**: DataDog is commercial/managed (pay per host/data volume); a Grafana+Prometheus(+ELK/Kibana for logs) stack is typically self-hosted, free aside from your own infra cost — not really "better," just a different tradeoff
+- Conceptually: if a Grafana setup reads metrics from Prometheus and uses Kibana/ELK separately for logs, DataDog is what you get if you replaced both pipelines with one managed vendor tool
+
+**Automated SLOs**
+- **SLO = Service Level Objective** — a target for how reliable a service should be, e.g. "99.9% of payment requests succeed in under 200ms over a rolling 30 days"
+- "Automated" means the monitoring tool tracks this continuously rather than someone eyeballing dashboards:
+  - It calculates your **error budget** — how much unreliability is "allowed" before breaching the SLO (99.9% uptime ≈ ~43 minutes of downtime/month)
+  - It auto-alerts on **burn rate** — not just "an error happened," but "at this rate, you'll breach your monthly target by Thursday"
+- Both DataDog and Grafana (via its SLO/Mimir features) support this now — it's not DataDog-exclusive, just something DataDog markets heavily
+- **Key contrast with a typical threshold alert**: a normal alert says "CPU > 90%" or "error rate > 5% right now" (threshold-driven). An SLO/burn-rate alert says "given your error budget, you're on track to breach your reliability target" (reliability-target-driven)
+
+**How to answer if asked about your monitoring experience**: "At EGT I used Grafana [+ metrics source] for dashboards and Kibana/ELK for logs — I understand DataDog plays a similar role but as a managed, unified platform with built-in SLO/error-budget tracking rather than assembled from separate open-source pieces." Honest, accurate, and shows the underlying concepts transfer even though the specific tool differs.
+
 ---
 
 ## 4. Domain Knowledge — Accounting Basics (relevant since Tide = banking + accounting for SMEs)
@@ -323,7 +341,7 @@ Base these on your actual work on the **Lounge project at EGT Digital** — conc
 ## 9. Day-Before Checklist
 - [ ] Re-read this doc, focus on the tech stack table and DORA definitions
 - [ ] Review the Banking (UK & EU) section — ClearBank/PPT structure, FSCS, FPS/BACS/CHAPS, SEPA, PSD2
-- [ ] Review distributed systems fundamentals (3.0), the saga pattern (3.4), Kafka deep dive (3.5), and the architecture hypothesis (Section 6) — practice explaining each out loud
+- [ ] Review distributed systems fundamentals (3.0), the saga pattern (3.4), Kafka deep dive (3.5), observability/DataDog vs. Grafana (3.6), and the architecture hypothesis (Section 6) — practice explaining each out loud
 - [ ] Rehearse 3 STAR stories out loud (timed to ~2 min each)
 - [ ] Do one practice system design (pick the ledger or invoicing prompt above) with pen and paper, 30 min
 - [ ] Do one cold code-review practice on a Java/Spring Boot snippet, 20 min
