@@ -287,6 +287,34 @@ public class WeightedRoundRobin {
 
 **Verified output** for servers A(weight 5), B(weight 1), C(weight 1) over 7 calls: `A A B A C A A` — A gets ~5/7 of traffic, smoothly interleaved rather than "AAAAA BC". **Plain (unweighted) Round-Robin** is the same idea with all weights equal — just cycle through servers with a modulo index, simpler if that's all they ask for.
 
+### 3a. Where the load balancer fits in a system design answer
+It's rarely a standalone question — usually one box in a bigger design (e.g. "design the expense report API"). Draw it right after DNS, before app servers:
+```
+Client → DNS → Load Balancer → [App Server 1, App Server 2, App Server 3...] → Database
+```
+Don't over-invest time here unless pushed — 3-5 minutes covering the points below, then move to the part of the design that's actually novel to the prompt.
+
+### 3b. Layer 4 vs Layer 7 — know this distinction cold
+- **Layer 4 (transport)**: routes on IP + port only, doesn't inspect request content. Faster, less flexible.
+- **Layer 7 (application)**: understands HTTP — routes by URL path, headers, cookies (e.g. `/api/reports` → report service, `/api/payments` → payment service). More overhead, far more flexible.
+- **State clearly for Payhawk's domain**: "Given separate services for expense reports, payments, notifications, I'd use a Layer 7 load balancer so I can route by path to the right backend service, not just spread load blindly."
+
+### 3c. Health checks — and where the "healthy server list" actually lives
+LB pings each backend on an interval (e.g. `GET /health` every 5s); after N consecutive failures, remove it from rotation until it recovers. **This is what makes "no single point of failure" true in practice — say it explicitly, don't just draw the box.**
+
+**Where should the list of healthy servers be stored, with multiple LB pods (e.g. 3 LB instances)?** Two different problems get conflated here — separate them explicitly if asked:
+
+1. **Health checking (is a server alive right now?)** — keep this **local, in-memory, per LB instance**. Each LB pod independently pings backends and keeps its own healthy-server list. This is how nginx/HAProxy actually work. **Don't reach for Redis here** — health status changes on the order of seconds, is inherently ephemeral, and adding a network hop to a shared store on every routing decision adds latency to every request, defeating the point of a fast load balancer. A few seconds of staleness (routing to a server that just went down, until the next check) is an acceptable trade-off.
+2. **Service discovery (what servers/pods should exist at all?)** — this is where a shared store makes sense, since pods scale up/down or get rescheduled. Standard tools: **etcd** (what Kubernetes itself uses internally for `Endpoints`/`EndpointSlice` objects), **Consul** or **ZooKeeper** (registry + health checking combined, common outside k8s). **Redis can work** as a lighter-weight version — pods self-register with a TTL key (`SETEX server:pod1 30 healthy`), so a dead pod's key just expires — legitimate for simpler setups, but not the purpose-built industry default; etcd/Consul give stronger consistency (Raft consensus) that plain Redis doesn't.
+
+**Interview-ready answer**: "If this runs inside Kubernetes with 3 pods, I wouldn't build custom shared state — k8s already solves this with Service + Endpoints/EndpointSlice backed by etcd, and kube-proxy or an ingress controller routes to healthy pod IPs automatically. If building a load balancer from scratch outside k8s, I'd keep health-check state local and in-memory per LB instance for speed, and only reach for a shared registry like etcd/Consul (or a lightweight Redis-with-TTL pattern) for service *discovery* — knowing which pods exist to check in the first place — not for the health status itself." This shows you know the difference between "what servers exist" (needs coordination) and "which are currently healthy" (better local and fast) — don't reach for Redis reflexively just because it's familiar.
+
+### 3d. The load balancer itself is a single point of failure — address this
+Run multiple LB instances behind a floating/virtual IP, or DNS round-robin across LB instances, so the LB layer has redundancy too. Senior-level detail interviewers listen for — go one level deeper than "add a load balancer."
+
+### 3e. Session persistence
+If the app keeps session state in memory on a specific server, either use sticky sessions (same client → same server, via cookie or IP hash) or — the better answer — externalize session state to Redis so any server can handle any request. State explicitly: "I'd avoid sticky sessions if possible and keep servers stateless, storing session data in Redis instead — that way the load balancer routes freely and a server crash doesn't lose anyone's session."
+
 ---
 
 ## 4. Top-K Spenders — aggregate then select
