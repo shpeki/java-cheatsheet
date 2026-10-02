@@ -1,4 +1,31 @@
 # java-interview-cheatsheet
+
+## Table of Contents
+
+Top-level topics only (each links to its section; sub-sections are listed inside it).
+
+- [SOLID Principles in Java](#solid-principles-in-java) (line 29)
+- [Object-Oriented Programming Principles in Java](#object-oriented-programming-principles-in-java) (line 478)
+- [Concurrent vs Synchronized Collections in Java](#concurrent-vs-synchronized-collections-in-java) (line 1575)
+- [Critical Section in Java](#critical-section-in-java) (line 1846)
+- [Synchronization in Java](#synchronization-in-java) (line 2183)
+- [Volatile vs AtomicInteger in Java](#volatile-vs-atomicinteger-in-java) (line 2667)
+- [equals() and hashCode() Contract in Java](#equals-and-hashcode-contract-in-java) (line 2924)
+- [Streams: Intermediate vs Terminal Operations in Java](#streams-intermediate-vs-terminal-operations-in-java) (line 3136)
+- [Parallel Streams in Java](#parallel-streams-in-java) (line 3367)
+- [Spring and Microservices](#spring-and-microservices) (line 3657)
+- [Database Indexes and ACID Properties](#database-indexes-and-acid-properties) (line 4408)
+- [Concurrency vs Parallelism in Java](#concurrency-vs-parallelism-in-java) (line 4627)
+- [Exception Handling in Java](#exception-handling-in-java) (line 4868)
+- [Protected vs Package-Private Access Modifiers in Java](#protected-vs-package-private-access-modifiers-in-java) (line 5372)
+- [Lists vs Sets in Java](#lists-vs-sets-in-java) (line 5648)
+- [ConcurrentHashMap in Java](#concurrenthashmap-in-java) (line 5899)
+- [JVM Architecture: A Comprehensive Overview](#jvm-architecture-a-comprehensive-overview) (line 6287)
+- [Higher-Order Functions in Java](#higher-order-functions-in-java) (line 6543)
+- [Microservice Patterns in Java](#microservice-patterns-in-java) (line 6754)
+- [Monolithic vs Microservices Architecture: A Comprehensive Comparison](#monolithic-vs-microservices-architecture-a-comprehensive-comparison) (line 7811)
+- [Java String Pool Explained](#java-string-pool-explained) (line 8064)
+
 # SOLID Principles in Java
 
 ## 1. Single Responsibility Principle (SRP)

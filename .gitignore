@@ -1,3 +1,5 @@
 # Compiler output
 out/
 *.class
+*.iml
+.idea/
