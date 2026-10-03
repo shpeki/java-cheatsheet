@@ -31,6 +31,9 @@ Map of this notebook. Start at the file for your topic.
 - [study-plan.md](autumn-2026/study-plan.md): 28-day plan.
 - [conga-gaps.md](autumn-2026/conga-gaps.md): Conga stack gaps (Cassandra, Redis, Service Bus, K8s, virtual threads).
 - [repo-gaps.md](autumn-2026/repo-gaps.md): gap register for this repo.
+- [spring-boot-flows.md](autumn-2026/spring-boot-flows.md): Spring Boot startup flow and HTTP request flow.
+- [java-21-new-features.md](autumn-2026/java-21-new-features.md): Java 21 in detail.
+- [java-25-new-features.md](autumn-2026/java-25-new-features.md): Java 25 in detail, plus what landed in 22-24.
 - [createfuture-System-Design-Live-Coding.md](autumn-2026/createfuture-System-Design-Live-Coding.md), [createfuture-Payment Gateway.md](<autumn-2026/createfuture-Payment Gateway.md>)
 - [officernd.md](autumn-2026/officernd.md), [officernd-tech-stack.md](autumn-2026/officernd-tech-stack.md)
 - [payhawk.md](autumn-2026/payhawk.md)
