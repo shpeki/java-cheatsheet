@@ -268,6 +268,192 @@ HackerRank's own public certification tests use the same skill banks as the recr
 
 ---
 
+## 9. Pattern Cheat Sheet — "What do I use?"
+
+All Java examples below were compiled and run against the sample cases from the LeetCode problems.
+
+### Step 1: recognize the pattern from the wording
+
+| If the problem says... | Use | LeetCode example |
+|---|---|---|
+| "find a pair", "have I seen this", "count occurrences", "group by" | **Hash map / set** | Two Sum, Group Anagrams |
+| "reads the same forwards and backwards", sorted input, compare both ends | **Two pointers** (from both ends) | Valid Palindrome |
+| "longest/shortest **contiguous** substring/subarray with a condition" | **Sliding window** | Longest Substring Without Repeating Characters |
+| "longest palindromic substring" | **Expand around center** | Longest Palindromic Substring |
+| "element appearing **more than n/2** times" | **Boyer-Moore voting** | Majority Element |
+| "**maximum sum** of a contiguous subarray" | **Kadane (1D DP)** | Maximum Subarray |
+| "overlapping intervals", "minimum rooms/cores/resources at the same time" | **Sweep line** (sort starts and ends) | Meeting Rooms II |
+| "number of ways to reach step n" / answer depends on the previous 1–2 answers | **Simple DP** (rolling variables) | Climbing Stairs |
+| "brackets must be closed in the right order" / last-in-first-out | **Stack** | Valid Parentheses |
+| "print X if divisible by A and B" | **Modulo, most specific check first** | FizzBuzz |
+| Data stored as rows of (key, value) but you need columns | **SQL conditional aggregation** | Weather Analysis |
+| Login/logout events in alternating rows | **SQL `ROW_NUMBER()` + self-join** | Weekend Hours Worked |
+
+### Step 2: the smallest working example of each
+
+**1. Hash map — "have I seen the partner?"** Trade O(n) memory for O(1) lookups so you avoid a nested loop.
+```java
+static int[] twoSum(int[] nums, int target) {
+    Map<Integer, Integer> seen = new HashMap<>();          // value -> index
+    for (int i = 0; i < nums.length; i++) {
+        Integer j = seen.get(target - nums[i]);            // have I seen the partner?
+        if (j != null) return new int[]{j, i};
+        seen.put(nums[i], i);
+    }
+    return new int[0];
+}
+```
+
+**2. Two pointers — compare from both ends toward the middle.** O(n) time, O(1) space.
+```java
+static boolean isPalindrome(String s) {
+    int l = 0, r = s.length() - 1;
+    while (l < r) {
+        while (l < r && !Character.isLetterOrDigit(s.charAt(l))) l++;
+        while (l < r && !Character.isLetterOrDigit(s.charAt(r))) r--;
+        if (Character.toLowerCase(s.charAt(l)) != Character.toLowerCase(s.charAt(r))) return false;
+        l++; r--;
+    }
+    return true;
+}
+```
+
+**3. Expand around center — try every center, grow while both sides match.** O(n²) time, O(1) space. Two centers per position: one for odd length, one for even.
+```java
+static String longestPalindrome(String s) {
+    int start = 0, end = 0;
+    for (int c = 0; c < s.length(); c++) {
+        int len = Math.max(expand(s, c, c), expand(s, c, c + 1));   // odd, even
+        if (len > end - start) { start = c - (len - 1) / 2; end = c + len / 2; }
+    }
+    return s.substring(start, end + 1);
+}
+private static int expand(String s, int l, int r) {
+    while (l >= 0 && r < s.length() && s.charAt(l) == s.charAt(r)) { l--; r++; }
+    return r - l - 1;
+}
+```
+
+**4. Sliding window — grow the right edge, shrink the left edge until the window is valid again.** Window length is `right - left + 1`. O(n).
+```java
+static int longestUnique(String s) {
+    Map<Character, Integer> count = new HashMap<>();
+    int left = 0, best = 0;
+    for (int right = 0; right < s.length(); right++) {
+        char c = s.charAt(right);
+        count.merge(c, 1, Integer::sum);                   // grow window
+        while (count.get(c) > 1) {                         // shrink until valid
+            count.merge(s.charAt(left++), -1, Integer::sum);
+        }
+        best = Math.max(best, right - left + 1);
+    }
+    return best;
+}
+```
+
+**5. Boyer-Moore voting — different values cancel each other out; the majority survives.** O(n) time, O(1) space. Add a verification pass if a majority isn't guaranteed.
+```java
+static int majority(int[] nums) {
+    int candidate = 0, count = 0;
+    for (int n : nums) {
+        if (count == 0) candidate = n;
+        count += (n == candidate) ? 1 : -1;
+    }
+    return candidate;
+}
+```
+
+**6. Kadane — at each index either extend the previous subarray or restart here.** O(n) time, O(1) space.
+```java
+static int maxSubarray(int[] nums) {
+    int cur = nums[0], best = nums[0];
+    for (int i = 1; i < nums.length; i++) {
+        cur = Math.max(nums[i], cur + nums[i]);            // extend or restart
+        best = Math.max(best, cur);
+    }
+    return best;
+}
+```
+
+**7. Sweep line — sort starts and ends separately, walk through time, count how many are active.** The peak count is the answer. O(n log n). The `<=` makes touching intervals (end 3, start 3) **not** overlap; use `<` if the problem says end times are inclusive.
+```java
+static int minRooms(int[][] intervals) {
+    int n = intervals.length;
+    int[] starts = new int[n], ends = new int[n];
+    for (int i = 0; i < n; i++) { starts[i] = intervals[i][0]; ends[i] = intervals[i][1]; }
+    Arrays.sort(starts); Arrays.sort(ends);
+    int rooms = 0, best = 0, e = 0;
+    for (int s = 0; s < n; s++) {
+        while (ends[e] <= starts[s]) { e++; rooms--; }     // a meeting ended, free its room
+        rooms++;                                           // a meeting starts
+        best = Math.max(best, rooms);
+    }
+    return best;
+}
+```
+
+**8. Simple DP — if the answer for n depends only on the last one or two answers, keep just those variables.** O(n) time, O(1) space.
+```java
+static int climbStairs(int n) {
+    int a = 1, b = 1;                                      // ways(0), ways(1)
+    for (int i = 2; i <= n; i++) { int next = a + b; a = b; b = next; }
+    return b;
+}
+```
+
+**9. Stack — the most recently opened bracket must be the first one closed.** O(n).
+```java
+static boolean validParens(String s) {
+    Deque<Character> stack = new ArrayDeque<>();
+    for (char c : s.toCharArray()) {
+        if (c == '(' || c == '[' || c == '{') stack.push(c);
+        else {
+            if (stack.isEmpty()) return false;
+            char o = stack.pop();
+            if ((c == ')' && o != '(') || (c == ']' && o != '[') || (c == '}' && o != '{')) return false;
+        }
+    }
+    return stack.isEmpty();
+}
+```
+
+**10. Modulo / condition order — check the most specific case first**, otherwise a broader branch (`% 3`) swallows it.
+```java
+static String fizzBuzz(int i) {
+    if (i % 15 == 0) return "FizzBuzz";                    // before the % 3 and % 5 checks
+    if (i % 3 == 0) return "Fizz";
+    if (i % 5 == 0) return "Buzz";
+    return String.valueOf(i);
+}
+```
+
+**11. SQL conditional aggregation (pivot) — turn row values into columns.** `CASE` returns NULL for non-matching rows and aggregates ignore NULL, so each column picks out only its own type.
+```sql
+SELECT MONTH(record_date) AS month,
+       MAX(CASE WHEN data_type = 'max' THEN data_value END)        AS monthly_max,
+       MIN(CASE WHEN data_type = 'min' THEN data_value END)        AS monthly_min,
+       ROUND(AVG(CASE WHEN data_type = 'avg' THEN data_value END)) AS monthly_avg
+FROM temperature_records
+GROUP BY MONTH(record_date)
+ORDER BY month;
+```
+
+**12. SQL `ROW_NUMBER()` + self-join — pair consecutive rows** (odd row = login, next row = logout), then filter by weekday.
+```sql
+WITH ordered AS (
+    SELECT emp_id, CAST(`timestamp` AS DATETIME) AS ts,
+           ROW_NUMBER() OVER (PARTITION BY emp_id ORDER BY `timestamp`) AS rn
+    FROM attendance
+)
+SELECT i.emp_id, i.ts AS login_ts, o.ts AS logout_ts
+FROM ordered i
+JOIN ordered o ON o.emp_id = i.emp_id AND o.rn = i.rn + 1
+WHERE i.rn % 2 = 1
+  AND DAYOFWEEK(i.ts) IN (1, 7);                           -- 1 = Sunday, 7 = Saturday
+```
+
+---
+
 ## Sources
 
 - [Boyer-Moore Majority Voting Algorithm – GeeksforGeeks](https://www.geeksforgeeks.org/theory-of-computation/boyer-moore-majority-voting-algorithm/)
